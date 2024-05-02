@@ -3,5 +3,5 @@ scratchpad.txt
 TODO.txt
 
 # dev
-.vscode/
-basic-harness/
+/.vscode/
+/basic-harness/
