@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 # Tmux script that sets up a regtest harness.
+
+#
+# Development
+#
+export PATH=$PATH:~/monero-x86_64-linux-gnu-v0.18.3.3
+
+################################################################################
+# Start
+################################################################################
+
 set -ex
+
 SESSION="xmr-harness"
 export RPC_USER="user"
 export RPC_PASS="pass"
@@ -25,10 +36,14 @@ BETA_WALLET_RPC_PORT=""
 # wait for process termination.
 WAIT="; tmux wait-for -S donexmr"
 
+export SHELL=$(which bash)
+
 NODES_ROOT=~/dextest/xmr
 export NODES_ROOT
-
-export SHELL=$(which bash)
+DATA_DIR="$NODES_ROOT/data"
+export DATA_DIR
+WALLET_DIR="${DATA_DIR}/wallet"
+export WALLET_DIR
 
 if [ -d "${NODES_ROOT}" ]; then
   rm -fR "${NODES_ROOT}"
@@ -36,6 +51,8 @@ fi
 mkdir -p "${NODES_ROOT}/alpha"
 mkdir -p "${NODES_ROOT}/beta"
 mkdir -p "${NODES_ROOT}/harness-ctl"
+mkdir -p "${DATA_DIR}"
+mkdir -p "${WALLET_DIR}"
 
 # MINE=1
 # # Bump sleep up to 3 if we have to mine a lot of blocks, because dcrwallet
@@ -85,10 +102,17 @@ echo "TODO:"
 # monerod nodes
 ################################################################################
 
-
-
-
 #
-# Progress --------------------------------------------------------------------
+# ----------------------- For now we just start a daemon -----------------------
 #
+
+
+
+################################################################################
+# monero wallets
+################################################################################
+################################################################################
+# Prepare the wallets
+################################################################################
+
 echo 'harness done'
