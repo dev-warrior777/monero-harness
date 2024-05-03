@@ -43,7 +43,7 @@ BETA_NODE="${LOCALHOST}:${BETA_NODE_PORT}"
 # ALPHA_MINING_ADDR=""
 export ALPHA_WALLET_RPC_PORT="" # change to a valid alpha wallet rpc port
 
-# Test only address (from Mastering Monero)
+# Test only address (from Mastering Monero) -- TODO: remove this
 MINE_ADDRESS="4BKjy1uVRTPiz4pHyaXXawb82XpzLiowSDd8rEQJGqvN6AD6kWosLQ6VJXW9sghopxXgQSh1RTd54JdvvCRsXiF41xvfeW5"
 
 # BETA_WALLET_SEED="deftly large tirade gumball android leech sidekick opened iguana voice gels focus poaching itches network espionage much jailed vaults winter oatmeal eleven science siren winter"
