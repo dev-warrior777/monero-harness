@@ -3,5 +3,6 @@ scratchpad.txt
 TODO.txt
 
 # dev
-/.vscode/
-/basic-harness/
+.vscode/
+basic-harness/
+local_test/

@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
-# Tmux script that sets up a regtest harness.
+# Tmux script that sets up an XMR regtest harness.
 
-#
+source monero_functions.inc
+
+SESSION="xmr-harness"
+
+export SHELL=$(which bash)
+
+###############################################################################
 # Development
 #
 export PATH=$PATH:~/monero-x86_64-linux-gnu-v0.18.3.3
+myip
 
 ################################################################################
 # Start
@@ -12,47 +19,47 @@ export PATH=$PATH:~/monero-x86_64-linux-gnu-v0.18.3.3
 
 set -ex
 
-SESSION="xmr-harness"
 export RPC_USER="user"
 export RPC_PASS="pass"
 export WALLET_PASS=abc
 
 # --listen and --rpclisten ports for alpha and beta nodes.
 # The ports are exported for use by create-wallet.sh.
-export ALPHA_NODE_PORT=""
-export ALPHA_NODE_RPC_PORT=""
-export BETA_NODE_PORT=""
-export BETA_NODE_RPC_PORT=""
+export ALPHA_NODE_PORT="28081"
+export ALPHA_NODE_RPC_PORT="38083"
+# export BETA_NODE_PORT="38081"
+# export BETA_NODE_RPC_PORT="38084"
 
-ALPHA_WALLET_SEED=""
-ALPHA_MINING_ADDR=""
-export ALPHA_WALLET_RPC_PORT=""
+# ALPHA_WALLET_SEED="sequence atlas unveil summon pebbles tuesday beer rudely snake rockets different fuselage woven tagged bested dented vegan hover rapid fawns obvious muppet randomly seasons randomly"
+# ALPHA_MINING_ADDR=""
+export ALPHA_WALLET_RPC_PORT="28087"
 
-BETA_WALLET_SEED=""
-BETA_MINING_ADDR=""
-BETA_WALLET_RPC_PORT=""
+# Test only address (from Mastering Monero)
+MINE_ADDRESS="4BKjy1uVRTPiz4pHyaXXawb82XpzLiowSDd8rEQJGqvN6AD6kWosLQ6VJXW9sghopxXgQSh1RTd54JdvvCRsXiF41xvfeW5"
+
+# BETA_WALLET_SEED=""
+BETA_MINING_ADDR=${MINE_ADDRESS}
+BETA_WALLET_RPC_PORT="28088"
 
 # WAIT can be used in a send-keys call along with a `wait-for donexmr` command to
 # wait for process termination.
 WAIT="; tmux wait-for -S donexmr"
 
-export SHELL=$(which bash)
-
 NODES_ROOT=~/dextest/xmr
-export NODES_ROOT
-DATA_DIR="$NODES_ROOT/data"
-export DATA_DIR
-WALLET_DIR="${DATA_DIR}/wallet"
-export WALLET_DIR
+HARNESS_CTL_DIR="$NODES_ROOT/harness-ctl"
+ALPHA_DATA_DIR="$NODES_ROOT/alpha"
+BETA_DATA_DIR="$NODES_ROOT/beta"
+ALPHA_WALLET_DIR="${ALPHA_DATA_DIR}/wallet"
+BETA_WALLET_DIR="${BETA_DATA_DIR}/wallet"
 
 if [ -d "${NODES_ROOT}" ]; then
   rm -fR "${NODES_ROOT}"
 fi
-mkdir -p "${NODES_ROOT}/alpha"
-mkdir -p "${NODES_ROOT}/beta"
-mkdir -p "${NODES_ROOT}/harness-ctl"
-mkdir -p "${DATA_DIR}"
-mkdir -p "${WALLET_DIR}"
+mkdir -p "${HARNESS_CTL_DIR}"
+mkdir -p "${ALPHA_DATA_DIR}"
+mkdir -p "${BETA_DATA_DIR}"
+mkdir -p "${ALPHA_WALLET_DIR}"
+mkdir -p "${BETA_WALLET_DIR}"
 
 # MINE=1
 # # Bump sleep up to 3 if we have to mine a lot of blocks, because dcrwallet
@@ -94,7 +101,7 @@ echo "Starting harness"
 # tmux new-session -d -s $SESSION $SHELL
 # tmux rename-window -t $SESSION:0 'harness-ctl'
 # tmux send-keys -t $SESSION:0 "set +o history" C-m
-# tmux send-keys -t $SESSION:0 "cd ${NODES_ROOT}/harness-ctl" C-m
+# tmux send-keys -t $SESSION:0 "cd ${HARNESS_CTL_DIR}" C-m
 
 echo "TODO:"
 
@@ -105,8 +112,30 @@ echo "TODO:"
 #
 # ----------------------- For now we just start a daemon -----------------------
 #
+# # Start monerod in regtest mode
+# monerod \
+# 	--detach \
+# 	--regtest \
+# 	"--data-dir=${DATA_DIR}/monerod" \
+# 	"--pidfile=${DATA_DIR}/monerod.pid" \
+# 	--fixed-difficulty=1 \
+# 	--rpc-bind-ip=127.0.0.1 \
+# 	"--rpc-bind-port=${ALPHA_NODE_RPC_PORT}"
+# sleep 5
 
-
+monerod \
+--detach \
+   --testnet \
+   --no-igd \
+   --hide-my-port \
+   "--data-dir=${ALPHA_DATA_DIR}" \
+   "--pidfile=${ALPHA_DATA_DIR}/monerod.pid" \
+   --p2p-bind-ip 127.0.0.1 \
+   --log-level 0 \
+   --add-exclusive-node 127.0.0.1:38081 \
+   --fixed-difficulty 1 \
+   --disable-rpc-ban
+sleep 5
 
 ################################################################################
 # monero wallets
