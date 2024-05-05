@@ -1,0 +1,48 @@
+
+Ports: OLD data
+---------------
+
+On the daemon side (bitmonerod)
+
+P2P Port is the one used to connect with the other nodes on the network (or locally in some cases).
+
+RPC port (Remote Procedure Call) is used to let other applications such as simplewallet or the GUI interact with the daemon, for instance to get information about a block.
+
+Default ports for the daemon are
+
+    P2P: 18080 for the mainnet, 28080 for the testnet
+    RPC: 18081 for the mainnet, 28081 for the testnet
+
+They can be changed with following options
+
+    --p2p-bind-port
+    --testnet-p2p-bind-port
+    --rpc-bind-port
+    --testnet-rpc-bind-port
+
+On the wallet side (simplewallet)
+---------------------------------
+
+RPC port is used to let other applications interact with the wallet for instance to get balance.
+The wallet do not act as a RPC server by default. It can be activated with the option --rpc-bind-port.
+
+For daemon and wallet
+---------------------
+
+The RPC data are exchanged using JSON-RPC a protocol based on JSON data format.
+This page shows how to use programming language Python to interact with the daemon or the wallet via RPC.
+
+https://moneroexamples.github.io/python-json-rpc/
+
+The bitmonerod defaults are:
+
+    Mainnet:
+    P2P: 18080
+    RPC:18081
+
+    Testnet:
+    P2P: 28080
+    RPC: 28081
+
+The wallet's RPC port has no default.
+Wallet and daemon may use 53 for DNS, which is optional.
