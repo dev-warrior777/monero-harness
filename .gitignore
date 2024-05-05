@@ -1,10 +1,11 @@
 # my notes
 scratchpad.txt
+ports.txt
 TODO.txt
+basic-harness/
 
 # dev
 .vscode/
-basic-harness/
 local_test/
 
 # work

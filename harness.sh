@@ -122,7 +122,8 @@ echo "TODO:"
 #
 # ----------------------- For now we just start a daemon -----------------------
 #
-
+# https://github.com/moneroexamples/private-testnet
+#
 # Start first node (alpha) in private testnet mode
 monerod \
 --detach \
