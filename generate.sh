@@ -2,7 +2,7 @@
 
 source monero_functions.inc
 
-port=28080
+port=58081
 if [ "$1" != "" ]; then
     port=$1
 fi

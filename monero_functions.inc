@@ -1,6 +1,4 @@
 
-
-
 monero-rpc-request() {
 	local port="${1:?}"   # can be a monerod or monero-wallet-rpc port
 	local method="${2:?}" # RPC method name
@@ -8,7 +6,7 @@ monero-rpc-request() {
 	curl --http0.9 "http://localhost:${port}/json_rpc" \
 		--silent \
 		--show-error \
-		-d "{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"${method}\",\"params\":${params}" \
+		-d "{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"${method}\",\"params\":${params}}" \
 		-H 'Content-Type: application/json' \
 		-w "\n"
 }
