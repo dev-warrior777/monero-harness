@@ -6,6 +6,7 @@ TODO.txt
 .vscode/
 basic-harness/
 local_test/
+*.log
 
 # work
 work-sheets.csv
