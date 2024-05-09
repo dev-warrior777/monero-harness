@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-
+#
+# TEST ONLY
 source monero_functions.inc
 
-get_info $1
+transfer_simple $1 $2 $3

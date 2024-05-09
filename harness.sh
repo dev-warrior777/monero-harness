@@ -43,10 +43,6 @@ BILL_WALLET_PRIMARY_ADDRESS=
 # # wallet seeds - unused for now as we make random wallets on start up
 # FRED_WALLET_SEED="sequence atlas unveil summon pebbles tuesday beer rudely snake rockets different fuselage woven tagged bested dented vegan hover rapid fawns obvious muppet randomly seasons randomly"
 # BILL_WALLET_SEED="deftly large tirade gumball android leech sidekick opened iguana voice gels focus poaching itches network espionage much jailed vaults winter oatmeal eleven science siren winter"
-# # Test only address (from Mastering Monero) -- TODO: remove change this for Bill's address
-# MINING_ADDRESS="4BKjy1uVRTPiz4pHyaXXawb82XpzLiowSDd8rEQJGqvN6AD6kWosLQ6VJXW9sghopxXgQSh1RTd54JdvvCRsXiF41xvfeW5"
-# BILL_MINING_ADDR=${MINING_ADDRESS}
-
 
 # data
 NODES_ROOT=~/dextest/xmr
@@ -150,13 +146,13 @@ create_wallet ${FRED_WALLET_RPC_PORT} "fred" ""
 sleep 3
 
 FRED_WALLET_PRIMARY_ADDRESS=$(get_primary_address ${FRED_WALLET_RPC_PORT})
-echo ${FRED_WALLET_PRIMARY_ADDRESS}
+echo "fred wallet primary address is ${FRED_WALLET_PRIMARY_ADDRESS}"
 
 create_wallet ${BILL_WALLET_RPC_PORT} "bill" ""
 sleep 3
 
 BILL_WALLET_PRIMARY_ADDRESS=$(get_primary_address ${BILL_WALLET_RPC_PORT})
-echo ${BILL_WALLET_PRIMARY_ADDRESS}
+echo "bill wallet primary address is ${BILL_WALLET_PRIMARY_ADDRESS}"
 
 # ################################################################################
 # # Prepare the wallets
@@ -165,6 +161,16 @@ echo ${BILL_WALLET_PRIMARY_ADDRESS}
 generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 120
 sleep 7
 
-# ...
+for money in 10000000000000 18000000000000 5000000000000 7000000000000 1000000000000 15000000000000 3000000000000 25000000000000
+do
+	transfer_simple ${BILL_WALLET_RPC_PORT} ${money} ${FRED_WALLET_PRIMARY_ADDRESS}
+	sleep 1 
+done
 
-echo 'harness done'
+generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 10
+sleep 2
+
+
+# ... any more?
+
+echo 'harness set up'

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-
+#
+# TEST ONLY
 source monero_functions.inc
 
 # get_primary_address $1
