@@ -7,6 +7,8 @@ TODO.txt
 basic-harness/
 local_test/
 *.log
+jq.sh
+harness-no-tmux.sh
 
 # work
 work-sheets.csv
