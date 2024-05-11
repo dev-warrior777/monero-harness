@@ -169,9 +169,6 @@ echo "Starting harness"
 
 SESSION="xmr-harness"
 
-# WAIT can be used in a send-keys call along with a `wait-for donexmr` command
-WAIT="; tmux wait-for -S donexmr"
-
 tmux new-session -d -s $SESSION $SHELL
 tmux rename-window -t $SESSION:0 "harness-ctl"
 tmux send-keys -t $SESSION:0 "set +o history" C-m

@@ -12,14 +12,13 @@ Embedded in Tmux
 
 ### Prerequisites
 
-- linux (tested on Ubuntu 22.04)
-- jq (1.6)
+- **monero-x86_64-linux-gnu-v0.18.3.3** or later <https://downloads.getmonero.org/cli/linux64>
+- **linux** (tested on Ubuntu 22.04)
+- **jq** (1.6)
 
 ### Run
 
-Run harness.sh
-
-TODO:
+run `./harness.sh`
 
 ## Useful Links
 
