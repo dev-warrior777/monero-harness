@@ -18,7 +18,7 @@ monero-rpc-request() {
 get_info() {
 	local port="${1:?input a monero daemon port}"
 	params="{}"
-	monero-rpc-request 18081 "get_info" "${params}"
+	monero-rpc-request ${port} "get_info" "${params}"
 }
 
 # mine into a mining (primary) address
@@ -31,6 +31,17 @@ generate() {
 }
 
 # Wallets
+
+# recreate a wallet from seed
+restore_deterministic_wallet() {
+	local port="${1:?input a monero wallet port}"
+	local wallet_name="${2:?specify wallet name}"
+	local pass="${3:-""}" # default is no password ""
+	local seed="${4:?input seed 25 words from English wordlist}"
+	params="{\"filename\":\"${wallet_name}\",\"password\":\"${pass}\",\"seed\":\"${seed}\"}"
+	monero-rpc-request "${port}" "restore_deterministic_wallet" "${params}" | jq '.'
+ }
+
 
 # create a new nettype mainnet wallet (on the fake regtest network chain)
 create_wallet() {
@@ -49,7 +60,7 @@ get_primary_address() {
 	monero-rpc-request "${port}" "get_address" "${params}" | jq -r '.result.address'
 }
 
-# get simple balance from a wallet
+# get simple balance from a wallet account - defaults to account 0
 get_balance() {
 	local port="${1:?input a valid wallet rpc port}"
 	local account="${2:-0}"
