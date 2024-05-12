@@ -2,4 +2,5 @@
 # ada djinn
 #
 # TEST ONLY
+ps -e | grep tmux
 ps -e | grep monero

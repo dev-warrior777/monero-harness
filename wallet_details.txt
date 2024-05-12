@@ -5,12 +5,16 @@ Fred
 
 FRED_WALLET_PRIMARY_ADDRESS=494aSG3QY1C4PJf7YyDjFc9n2uAuARWSoGQ3hrgPWXtEjgGrYDn2iUw8WJP5Dzm4GuMkY332N9WfbaKfu5tWM3wk8ZeSEC5
 "vibrate fever timber cuffs hunter terminal dilute losing light because nabbing slower royal brunt gnaw vats fishing tipsy toxic vague oscar fudge mice nasty light"
-"670a02e0667c14f87cec733630d93fea247af23bd1ff772aa1b986f9a3a2b805" <- view key
+670a02e0667c14f87cec733630d93fea247af23bd1ff772aa1b986f9a3a2b805 <- view key
 
 Bill
 ----
 
-+ BILL_WALLET_PRIMARY_ADDRESS=42xPx5nWhxegefWEzRNoJZWwK7d5ofKoWLG1Gmf8567nJMVR37P1EvqYxqWtfgtYUn8qgSbeAqoLcLKe3seFXV2k5ZSqvQw
+BILL_WALLET_PRIMARY_ADDRESS=42xPx5nWhxegefWEzRNoJZWwK7d5ofKoWLG1Gmf8567nJMVR37P1EvqYxqWtfgtYUn8qgSbeAqoLcLKe3seFXV2k5ZSqvQw
 "zodiac playful artistic friendly ought myriad entrance inroads mural duets enraged furnished tsunami pimple ammo prying january swiftly pulp aunt beer ticket tubes unplugs ammo"
 798922923b206997b51c8c88f5a914f09fdba68085b3a445659c1fb28704b802
 
+Charlie
+CHARLIE_WALLET_PRIMARY_ADDRESS=453w1dEoNE1HjKzKVpAU14Honzenqs5VKKQWHb7RuNHLa4ekXhXnGhR6RuttNpvjbtDjzy8pTgz5j4ZSsWQqyxSDBVQ4WCk
+"tilt equip bikini nylon ardent asylum eight vane gyrate venomous dove vortex aztec maul rash lair elope rover lodge neutral lemon eggs mocked mugged equip"
+ff3bef320b8268cef410b78c91f34dfc995c72fcb1b498f7a732d76a42a9e207
