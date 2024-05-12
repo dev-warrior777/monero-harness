@@ -4,7 +4,7 @@ Monero development Harness - documentation and notes
 
 ## Architecture
 
-![alt text](image-1.png)
+![alt text](image.png)
 
 Embedded in Tmux
 
