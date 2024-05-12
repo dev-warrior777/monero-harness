@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Tmux script that sets up an XMR regtest harness with one node 'alpha' and 2
-# wallets 'fred' and 'bill'.
+# Tmux script that sets up an XMR regtest harness with one node 'alpha' and 3
+# wallets 'fred', 'bill' & 'charlie'.
 
 ###############################################################################
 # Development
@@ -9,7 +9,7 @@
 export PATH=$PATH:~/monero-x86_64-linux-gnu-v0.18.3.3
 
 ################################################################################
-# Monero functions
+# Monero RPC functions
 ################################################################################
 
 source monero_functions.inc
@@ -230,11 +230,11 @@ sleep 5
 get_info ${ALPHA_NODE_RPC_PORT}
 
 ################################################################################
-# WALLET CLIENTS
+# WALLET SERVERS
 ################################################################################
 
-# Start the first wallet client - window 2
-echo "starting fred wallet client"
+# Start the first wallet server - window 2
+echo "starting fred wallet server"
 
 tmux new-window -t $SESSION:2 -n 'fred' $SHELL
 tmux send-keys -t $SESSION:2 "set +o history" C-m
@@ -250,7 +250,7 @@ tmux send-keys -t $SESSION:2 "monero-wallet-rpc \
 sleep 2
 
 # Start the second wallet client - window 3
-echo "starting bill wallet client"
+echo "starting bill wallet server"
 
 tmux new-window -t $SESSION:3 -n 'bill' $SHELL
 tmux send-keys -t $SESSION:3 "set +o history" C-m
@@ -265,7 +265,7 @@ tmux send-keys -t $SESSION:3 "monero-wallet-rpc \
 
 sleep 2
 
-# Start the third wallet client - window 4
+# Start the third wallet server - window 4
 echo "starting bill wallet client"
 
 tmux new-window -t $SESSION:4 -n 'charlie' $SHELL
