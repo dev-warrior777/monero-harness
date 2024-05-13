@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
+
 monero-rpc-request() {
 	local port="${1:?}"   # can be a monerod or monero-wallet-rpc port
 	local method="${2:?}" # RPC method name
@@ -52,6 +54,11 @@ create_wallet() {
 	monero-rpc-request "${port}" "create_wallet" "${params}" | jq '.'
 }
 
+refresh_wallet() {
+	local port="${1:?input a monero wallet port}"
+	monero-rpc-request "${port}" "refresh" "{}"
+}
+
 # get the primary address of a wallet account 0 address index 0
 get_primary_address() {
 	local port="${1:?input a valid wallet rpc port}"
@@ -83,6 +90,20 @@ transfer_simple() {
 	local address="${3:?input a valid destination wallet address}"
 	destinations="[{\"amount\":${amount},\"address\":\"${address}\"}]"
     fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"ring_size\":7,\"get_tx_key\": true"
+	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\"}], "${fixed_params}" }"
+	echo "${params}"
+	monero-rpc-request "${port}" "transfer" "${params}"
+}
+
+# transfer monero to 1 recipient at their account 0, subaddress-indeces [0] 
+# but do not send.
+# 
+transfer_no_relay() {
+	local port="${1:?input a valid wallet rpc port}"
+	local amount="${2:?input an amount of monero to send in atomic units 1e12}"
+	local address="${3:?input a valid destination wallet address}"
+	destinations="[{\"amount\":${amount},\"address\":\"${address}\"}]"
+    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"do_not_relay\":true,\"get_tx_key\": true"
 	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\"}], "${fixed_params}" }"
 	echo "${params}"
 	monero-rpc-request "${port}" "transfer" "${params}"
