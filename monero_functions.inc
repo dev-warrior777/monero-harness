@@ -44,6 +44,21 @@ restore_deterministic_wallet() {
 	monero-rpc-request "${port}" "restore_deterministic_wallet" "${params}" | jq '.'
  }
 
+generate_from_keys() {
+	local port="${1:?input a monero wallet port}"
+	local wallet_name="${2:?specify wallet name}"
+	local address="${3:?specify wallet primary address}"
+	local spendkey="${4:-""}" # if no spendkey then a view only wallet will be created
+	local viewkey="${5:?specify wallet viewkey}"
+	local pass="${6:-""}" # default is no password ""
+	if [ "${spendkey}" != "" ]
+	then
+		params="{\"filename\":\"${wallet_name}\",\"address\":\"${address}\",\"spendkey\":\"${spendkey}\",\"viewkey\":\"${viewkey}\",\"password\":\"${pass}\"}"
+	else
+		params="{\"filename\":\"${wallet_name}\",\"address\":\"${address}\",\"viewkey\":\"${viewkey}\",\"password\":\"${pass}\"}"
+	fi
+	monero-rpc-request "${port}" "generate_from_keys" "${params}" | jq '.'
+}
 
 # create a new nettype mainnet wallet (on the fake regtest network chain)
 create_wallet() {
@@ -96,8 +111,10 @@ transfer_simple() {
 }
 
 # transfer monero to 1 recipient at their account 0, subaddress-indeces [0] 
-# but do not send.
-# 
+# but do not send. Iff it is called for a view only wallet (like watch only)
+# an unsigned_txset (unsigned tx) will be returned. This can then be signed
+# by the parent full wallet. This is really for online unsigned tx creation
+# and offline signing by hw wallet.
 transfer_no_relay() {
 	local port="${1:?input a valid wallet rpc port}"
 	local amount="${2:?input an amount of monero to send in atomic units 1e12}"
@@ -107,4 +124,12 @@ transfer_no_relay() {
 	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\"}], "${fixed_params}" }"
 	echo "${params}"
 	monero-rpc-request "${port}" "transfer" "${params}"
+}
+
+sign_transfer() {
+	local port="${1:?input a valid wallet rpc port}"
+	local unsigned_txset="${2:?input an unsigned tx set}"
+	params="{\"unsigned_txset\":\"${unsigned_txset}\"}"
+	echo ${params}
+	monero-rpc-request "${port}" "sign_transfer" "${params}"
 }

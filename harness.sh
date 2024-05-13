@@ -37,6 +37,8 @@ export ALPHA_NODE="${LOCALHOST}:${ALPHA_NODE_PORT}"
 export FRED_WALLET_RPC_PORT="28084"
 export BILL_WALLET_RPC_PORT="28184"
 export CHARLIE_WALLET_RPC_PORT="28284"
+export TX_BUILDER_WALLET_RPC_PORT="28384"
+export TX_BUILDER_VIEW_WALLET_RPC_PORT="28484"
 
 # wallet seeds, passwords & primary addresses
 FRED_WALLET_SEED="vibrate fever timber cuffs hunter terminal dilute losing light because nabbing slower royal brunt gnaw vats fishing tipsy toxic vague oscar fudge mice nasty light"
@@ -53,12 +55,25 @@ CHARLIE_WALLET_SEED="tilt equip bikini nylon ardent asylum eight vane gyrate ven
 export CHARLIE_WALLET_NAME="charlie"
 export CHARLIE_WALLET_PASS=""
 export CHARLIE_WALLET_PRIMARY_ADDRESS="453w1dEoNE1HjKzKVpAU14Honzenqs5VKKQWHb7RuNHLa4ekXhXnGhR6RuttNpvjbtDjzy8pTgz5j4ZSsWQqyxSDBVQ4WCk"
+export CHARLIE_WALLET_VIEWKEY="ff3bef320b8268cef410b78c91f34dfc995c72fcb1b498f7a732d76a42a9e207"
+
+TX_BUILDER_WALLET_SEED="aptitude depth object farming tyrant buzzer afield awakened darted misery urgent water tanks unfit strained omnibus radar furnished hefty yoyo looking titans lukewarm menu buzzer"
+export TX_BUILDER_WALLET_NAME="tx_builder"
+export TX_BUILDER_WALLET_PASS=""
+export TX_BUILDER_WALLET_PRIMARY_ADDRESS="46MdM2AoFHz8wAkRgBvjpBe6zmDaUTXqDEHU7SxpJjvULydszNoHLdn4qzCRjRzmEL3dBStqjFFkb1P31vBbVe5KEDzh6LV"
+export TX_BUILDER_WALLET_VIEWKEY="18631cd84ddbcd7fa56a119bd05d303d206d59878dfb5d891bcd7a8773a7f90a"
+
+# txBuilder_view cannot spend outputs but can create transactions
+export TX_BUILDER_VIEW_WALLET_NAME="tx_builder_view"
+# export TX_BUILDER_WALLET_PRIMARY_ADDRESS=""
 
 # data dir
 NODES_ROOT=~/dextest/xmr
 FRED_WALLET_DIR="${NODES_ROOT}/wallets/fred"
 BILL_WALLET_DIR="${NODES_ROOT}/wallets/bill"
 CHARLIE_WALLET_DIR="${NODES_ROOT}/wallets/charlie"
+TX_BUILDER_WALLET_DIR="${NODES_ROOT}/wallets/tx_builder"
+TX_BUILDER_VIEW_WALLET_DIR="${NODES_ROOT}/wallets/tx_builder_view"
 HARNESS_CTL_DIR="${NODES_ROOT}/harness-ctl"
 ALPHA_DATA_DIR="${NODES_ROOT}/alpha"
 ALPHA_REGTEST_CFG="${ALPHA_DATA_DIR}/alpha.conf"
@@ -69,6 +84,8 @@ fi
 mkdir -p "${FRED_WALLET_DIR}"
 mkdir -p "${BILL_WALLET_DIR}"
 mkdir -p "${CHARLIE_WALLET_DIR}"
+mkdir -p "${TX_BUILDER_WALLET_DIR}"
+mkdir -p "${TX_BUILDER_VIEW_WALLET_DIR}"
 mkdir -p "${HARNESS_CTL_DIR}"
 mkdir -p "${ALPHA_DATA_DIR}"
 touch    "${ALPHA_REGTEST_CFG}"           # currently empty
@@ -281,12 +298,50 @@ tmux send-keys -t $SESSION:4 "monero-wallet-rpc \
 
 sleep 2
 
+# Start the fourth wallet server - window 5
+echo "starting tx_builder wallet client"
+
+tmux new-window -t $SESSION:5 -n 'tx_builder' $SHELL
+tmux send-keys -t $SESSION:5 "set +o history" C-m
+tmux send-keys -t $SESSION:5 "cd ${TX_BUILDER_WALLET_DIR}" C-m
+
+tmux send-keys -t $SESSION:5 "monero-wallet-rpc \
+   --rpc-bind-ip 127.0.0.1 \
+   --rpc-bind-port ${TX_BUILDER_WALLET_RPC_PORT} \
+   --wallet-dir ${TX_BUILDER_WALLET_DIR} \
+   --disable-rpc-login \
+   --allow-mismatched-daemon-version; tmux wait-for -S builderxmr" C-m
+
+sleep 2
+
+# Start the fifth wallet server - window 6
+echo "starting tx_builder_view wallet client"
+
+tmux new-window -t $SESSION:6 -n 'tx_builder_view' $SHELL
+tmux send-keys -t $SESSION:6 "set +o history" C-m
+tmux send-keys -t $SESSION:6 "cd ${TX_BUILDER_VIEW_WALLET_DIR}" C-m
+
+tmux send-keys -t $SESSION:6 "monero-wallet-rpc \
+   --rpc-bind-ip 127.0.0.1 \
+   --rpc-bind-port ${TX_BUILDER_VIEW_WALLET_RPC_PORT} \
+   --wallet-dir ${TX_BUILDER_VIEW_WALLET_DIR} \
+   --disable-rpc-login \
+   --allow-mismatched-daemon-version; tmux wait-for -S builderviewxmr" C-m
+
+sleep 2
+
 ################################################################################
 # Create the wallets
 ################################################################################
 
 # from here on we are working in the harness-ctl dir
 tmux send-keys -t $SESSION:0 "cd ${HARNESS_CTL_DIR}" C-m
+
+# create_wallet ${TX_BUILDER_WALLET_RPC_PORT} "${TX_BUILDER_WALLET_NAME}"
+# sleep 1
+# query_key ${TX_BUILDER_WALLET_RPC_PORT} "view_key"
+# query_key ${TX_BUILDER_WALLET_RPC_PORT} "mnemonic"
+# get_primary_address ${TX_BUILDER_WALLET_RPC_PORT}
 
 # recreate_fred wallet
 restore_deterministic_wallet ${FRED_WALLET_RPC_PORT} "${FRED_WALLET_NAME}" "${FRED_WALLET_PASS}" "${FRED_WALLET_SEED}"
@@ -298,6 +353,10 @@ sleep 3
 
 # recreate charlie wallet
 restore_deterministic_wallet ${CHARLIE_WALLET_RPC_PORT} "${CHARLIE_WALLET_NAME}" "${CHARLIE_WALLET_PASS}" "${CHARLIE_WALLET_SEED}"
+sleep 3
+
+# recreate tx_builder wallet
+restore_deterministic_wallet ${TX_BUILDER_WALLET_RPC_PORT} "${TX_BUILDER_WALLET_NAME}" "${TX_BUILDER_WALLET_PASS}" "${TX_BUILDER_WALLET_SEED}"
 sleep 3
 
 # ################################################################################
@@ -315,23 +374,47 @@ generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 60
 sleep 2
 generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 60
 # let bill's wallet catch up - time sensitive: it is abnormal to mine 300 blocks
-sleep 7
+sleep 5
+
+refresh_wallet ${BILL_WALLET_RPC_PORT} | jq '.'
+sleep 1
 
 # bill starts with 180 XMR 144 spendable
 get_balance ${BILL_WALLET_RPC_PORT}
 
 # Monero block reward 0.6 XMR on regtest
 
-# transfer some money from bill-the-miner to fred and charlie
+# transfer some money from bill-the-miner to fred, charlie & tx_builder
 for money in 10000000000000 18000000000000 5000000000000 7000000000000 1000000000000 15000000000000 3000000000000 25000000000000
 do
 	transfer_simple ${BILL_WALLET_RPC_PORT} ${money} ${FRED_WALLET_PRIMARY_ADDRESS}
 	sleep 1 
 	transfer_simple ${BILL_WALLET_RPC_PORT} ${money} ${CHARLIE_WALLET_PRIMARY_ADDRESS}
 	sleep 1 
+	transfer_simple ${BILL_WALLET_RPC_PORT} ${money} ${TX_BUILDER_WALLET_PRIMARY_ADDRESS}
+	sleep 1 
    generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 1
    sleep 1
 done
+
+# generate tx_builder view only wallet for building txs
+generate_from_keys ${TX_BUILDER_VIEW_WALLET_RPC_PORT} \
+   "${TX_BUILDER_VIEW_WALLET_NAME}" \
+   "${TX_BUILDER_WALLET_PRIMARY_ADDRESS}" \
+   "" \
+   "${TX_BUILDER_WALLET_VIEWKEY}" \
+   "${TX_BUILDER_WALLET_PASS}"
+
+refresh_wallet ${FRED_WALLET_RPC_PORT} | jq '.'
+sleep 1
+refresh_wallet ${BILL_WALLET_RPC_PORT} | jq '.'
+sleep 1
+refresh_wallet ${CHARLIE_WALLET_RPC_PORT} | jq '.'
+sleep 1
+refresh_wallet ${TX_BUILDER_WALLET_RPC_PORT} | jq '.'
+sleep 1
+refresh_wallet ${TX_BUILDER_VIEW_WALLET_RPC_PORT} | jq '.'
+sleep 1
 
 # mine 10 more blocks to make all fred's and charlie's money spendable (normal tx needs 10 confirmations)
 generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 10
@@ -341,9 +424,9 @@ sleep 7
 # Watch miner
 if [ -z "$NOMINER" ]
 then
-  tmux new-window -t $SESSION:5 -n "miner" $SHELL
-  tmux send-keys -t $SESSION:5 "cd ${NODES_ROOT}/harness-ctl" C-m
-  tmux send-keys -t $SESSION:5 "watch -n 15 ./mine-to-bill 1" C-m
+  tmux new-window -t $SESSION:7 -n "miner" $SHELL
+  tmux send-keys -t $SESSION:7 "cd ${NODES_ROOT}/harness-ctl" C-m
+  tmux send-keys -t $SESSION:7 "watch -n 15 ./mine-to-bill 1" C-m
 fi
 
 # Re-enable history and attach to the control session.
