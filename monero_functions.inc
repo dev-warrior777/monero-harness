@@ -44,6 +44,21 @@ restore_deterministic_wallet() {
 	monero-rpc-request "${port}" "restore_deterministic_wallet" "${params}" | jq '.'
  }
 
+generate_from_keys() {
+	local port="${1:?input a monero wallet port}"
+	local wallet_name="${2:?specify wallet name}"
+	local address="${3:?specify wallet primary address}"
+	local spendkey="${4:-""}" # if no spendkey then a view only wallet will be created
+	local viewkey="${5:?specify wallet viewkey}"
+	local pass="${6:-""}" # default is no password ""
+	if [ "${spendkey}" != "" ]
+	then
+		params="{\"filename\":\"${wallet_name}\",\"address\":\"${address}\",\"spendkey\":\"${spendkey}\",\"viewkey\":\"${viewkey}\",\"password\":\"${pass}\"}"
+	else
+		params="{\"filename\":\"${wallet_name}\",\"address\":\"${address}\",\"viewkey\":\"${viewkey}\",\"password\":\"${pass}\"}"
+	fi
+	monero-rpc-request "${port}" "generate_from_keys" "${params}" | jq '.'
+}
 
 # create a new nettype mainnet wallet (on the fake regtest network chain)
 create_wallet() {
