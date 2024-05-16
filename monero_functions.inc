@@ -74,6 +74,14 @@ refresh_wallet() {
 	monero-rpc-request "${port}" "refresh" "{}"
 }
 
+close_wallet() {
+	echo "TODO:"
+}
+
+stop_wallet() {
+	echo "TODO:"
+}
+
 # get the primary address of a wallet account 0 address index 0
 get_primary_address() {
 	local port="${1:?input a valid wallet rpc port}"
@@ -110,17 +118,48 @@ transfer_simple() {
 	monero-rpc-request "${port}" "transfer" "${params}"
 }
 
+# Online Tx Creation & Offline Signing
+
+export_outputs() {
+	local port="${1:?input a valid wallet rpc port}"
+	params="{\"all\":true}"
+	monero-rpc-request "${port}" "export_outputs" "${params}" | jq '.'
+}
+
+import_outputs() {
+	local port="${1:?input a valid wallet rpc port}"
+	local outputs_data_hex="${2:?input a valid outputs data hex string}"
+	params="{\"outputs_data_hex\":\"${outputs_data_hex}\"}"
+	echo "${params}"
+	monero-rpc-request "${port}" "import_outputs" "${params}"
+}
+
+export_key_images() {
+	local port="${1:?input a valid wallet rpc port}"
+	params="{\"all\":true}"
+	monero-rpc-request "${port}" "export_key_images" "${params}" | jq '.' #TODO: refine jq
+}
+
+import_key_images() {
+	local port="${1:?input a valid wallet rpc port}"
+	local signed_key_images="${2:?input a a set valid  key images}" # json array of signed key images:
+	params="{\"signed_key_images\":\"${signed_key_images}\"}"
+	monero-rpc-request "${port}" "import_key_images" "${params}"
+}
+
+
 # transfer monero to 1 recipient at their account 0, subaddress-indeces [0] 
 # but do not send. Iff it is called for a view only wallet (like watch only)
-# an unsigned_txset (unsigned tx) will be returned. This can then be signed
-# by the parent full wallet. This is really for online unsigned tx creation
-# and offline signing by hw wallet.
+# an unsigned_txset (unsigned txs) will be returned. This can then be signed
+# by the parent full wallet, but offline (i.e. not connected to alpha node).
+# Note: This is for online unsigned tx creation and offline signing and can
+# be used also by a hardware wallet device like trezor.
 transfer_no_relay() {
-	local port="${1:?input a valid wallet rpc port}"
+	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
 	local amount="${2:?input an amount of monero to send in atomic units 1e12}"
 	local address="${3:?input a valid destination wallet address}"
 	destinations="[{\"amount\":${amount},\"address\":\"${address}\"}]"
-    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"do_not_relay\":true,\"get_tx_key\": true"
+    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"do_not_relay\":true,\"get_tx_key\":true,\"get_tx_hex\":true,\"get_tx_metadata\":true"
 	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\"}], "${fixed_params}" }"
 	echo "${params}"
 	monero-rpc-request "${port}" "transfer" "${params}"
@@ -130,6 +169,7 @@ sign_transfer() {
 	local port="${1:?input a valid wallet rpc port}"
 	local unsigned_txset="${2:?input an unsigned tx set}"
 	params="{\"unsigned_txset\":\"${unsigned_txset}\"}"
-	echo ${params}
+	echo "${params}"
 	monero-rpc-request "${port}" "sign_transfer" "${params}"
 }
+
