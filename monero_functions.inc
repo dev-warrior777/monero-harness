@@ -147,13 +147,18 @@ import_key_images() {
 	monero-rpc-request "${port}" "import_key_images" "${params}"
 }
 
-
 # transfer monero to 1 recipient at their account 0, subaddress-indeces [0] 
 # but do not send. Iff it is called for a view only wallet (like watch only)
 # an unsigned_txset (unsigned txs) will be returned. This can then be signed
 # by the parent full wallet, but offline (i.e. not connected to alpha node).
+#
 # Note: This is for online unsigned tx creation and offline signing and can
-# be used also by a hardware wallet device like trezor.
+# also be used with a hardware wallet device like trezor. As a consequence not
+# only must the offline wallet have no connection to the monerod it can never
+# have had any connection to monerod or it is considered a Hot wallet and thus
+# is prevented from imorting outputs by the monero code.
+# https://github.com/monero-project/monero/issues/9333
+#
 transfer_no_relay() {
 	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
 	local amount="${2:?input an amount of monero to send in atomic units 1e12}"
