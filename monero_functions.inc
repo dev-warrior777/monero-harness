@@ -74,12 +74,18 @@ refresh_wallet() {
 	monero-rpc-request "${port}" "refresh" "{}"
 }
 
+# save wallet and close
 close_wallet() {
-	echo "TODO:"
+	local port="${1:?input a valid wallet rpc port}"
+	params="{}"
+	monero-rpc-request ${port} "close_wallet" "${params}"
 }
 
+# save wallet and exit monero-wallet-rpc process
 stop_wallet() {
-	echo "TODO:"
+	local port="${1:?input a valid wallet rpc port}"
+	params="{}"
+	monero-rpc-request ${port} "stop_wallet" "${params}"
 }
 
 # get the primary address of a wallet account 0 address index 0
@@ -120,14 +126,15 @@ transfer_simple() {
 
 # Online Tx Creation & Offline Signing
 
+# export view-only wallet outputs to file exported_outputs
 export_outputs() {
-	local port="${1:?input a valid wallet rpc port}"
+	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
 	params="{\"all\":true}"
 	monero-rpc-request "${port}" "export_outputs" "${params}" | jq '.'
 }
 
 import_outputs() {
-	local port="${1:?input a valid wallet rpc port}"
+	local port="${1:?input a valid wallet rpc port for a cold wallet}"
 	local outputs_data_hex="${2:?input a valid outputs data hex string}"
 	params="{\"outputs_data_hex\":\"${outputs_data_hex}\"}"
 	echo "${params}"
@@ -135,13 +142,14 @@ import_outputs() {
 }
 
 export_key_images() {
-	local port="${1:?input a valid wallet rpc port}"
+	local port="${1:?input a valid wallet rpc port for a cold wallet}"
 	params="{\"all\":true}"
-	monero-rpc-request "${port}" "export_key_images" "${params}" | jq '.' #TODO: refine jq
+	monero-rpc-request "${port}" "export_key_images" "${params}" | jq '.'
 }
 
+# import key images from cold wallet generated exported_key_images file
 import_key_images() {
-	local port="${1:?input a valid wallet rpc port}"
+	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
 	local signed_key_images="${2:?input a a set valid  key images}" # json array of signed key images:
 	params="{\"signed_key_images\":\"${signed_key_images}\"}"
 	monero-rpc-request "${port}" "import_key_images" "${params}"
@@ -170,8 +178,12 @@ transfer_no_relay() {
 	monero-rpc-request "${port}" "transfer" "${params}"
 }
 
+# sign a prepared unsigned txset
+# 
+# Note: can only be done by an offline cold wallet that has never been "online"
+# i.e. connected to any monerod daemon.
 sign_transfer() {
-	local port="${1:?input a valid wallet rpc port}"
+	local port="${1:?input a valid wallet rpc port for a cold wallet}"
 	local unsigned_txset="${2:?input an unsigned tx set}"
 	params="{\"unsigned_txset\":\"${unsigned_txset}\"}"
 	echo "${params}"

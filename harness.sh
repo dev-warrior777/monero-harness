@@ -8,6 +8,8 @@
 
 export PATH=$PATH:~/monero-x86_64-linux-gnu-v0.18.3.3
 
+export NOMINER="1"
+
 ################################################################################
 # Monero RPC functions
 ################################################################################
@@ -63,9 +65,9 @@ export TX_BUILDER_WALLET_PASS=""
 export TX_BUILDER_WALLET_PRIMARY_ADDRESS="46MdM2AoFHz8wAkRgBvjpBe6zmDaUTXqDEHU7SxpJjvULydszNoHLdn4qzCRjRzmEL3dBStqjFFkb1P31vBbVe5KEDzh6LV"
 export TX_BUILDER_WALLET_VIEWKEY="18631cd84ddbcd7fa56a119bd05d303d206d59878dfb5d891bcd7a8773a7f90a"
 
-# txBuilder_view cannot spend outputs but can create transactions
+# txBuilder_view cannot spend outputs but can create unsigned transactions
 export TX_BUILDER_VIEW_WALLET_NAME="tx_builder_view"
-# export TX_BUILDER_WALLET_PRIMARY_ADDRESS=""
+export TX_BUILDER_WALLET_PRIMARY_ADDRESS="46MdM2AoFHz8wAkRgBvjpBe6zmDaUTXqDEHU7SxpJjvULydszNoHLdn4qzCRjRzmEL3dBStqjFFkb1P31vBbVe5KEDzh6LV"
 
 # data dir
 NODES_ROOT=~/dextest/xmr
@@ -93,6 +95,21 @@ touch    "${ALPHA_REGTEST_CFG}"           # currently empty
 # make available from the harness-ctl dir 
 cp monero_functions.inc ${HARNESS_CTL_DIR} 
 
+# make golang utis available from the harness-ctl dir
+UTILS_SRC_DIR=$(pwd)/cmd/
+HEX_DECODE=${UTILS_SRC_DIR}/decode/decode
+HEX_ENCODE=${UTILS_SRC_DIR}/encode/encode
+if [ "${HEX_DECODE}" == "" ]; then
+   echo "please build utils (encode, decode) in ${UTILS_SRC_DIR}"
+   exit 1
+fi
+if [ "${HEX_ENCODE}" == "" ]; then
+   echo "please build utils (encode, decode) in ${UTILS_SRC_DIR}"
+   exit 1
+fi
+cp ${HEX_DECODE}  ${HARNESS_CTL_DIR}
+cp ${HEX_ENCODE}  ${HARNESS_CTL_DIR}
+
 # Background watch mining in window ??? by default:
 # 'export NOMINER="1"' or uncomment this line to disable
 #NOMINER="1"
@@ -102,15 +119,16 @@ cp monero_functions.inc ${HARNESS_CTL_DIR}
 ################################################################################
 echo "Writing ctl scripts"
 
-# Node info script
+# Node info
 cat > "${HARNESS_CTL_DIR}/alpha_info" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
 get_info ${ALPHA_NODE_RPC_PORT}
 EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_info"
+# -----------------------------------------------------------------------------
 
-# Mine script - mine to bill-the-miner
+# Mine to bill-the-miner
 # inputs:
 # - number of blocks to mine
 cat > "${HARNESS_CTL_DIR}/mine-to-bill" <<EOF
@@ -120,8 +138,9 @@ generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} \$1
 sleep 2
 EOF
 chmod +x "${HARNESS_CTL_DIR}/mine-to-bill"
+# -----------------------------------------------------------------------------
 
-# Script to send funds from fred's primary account address to another address
+# Send funds from fred's primary account address to another address
 # inputs:
 # - money in atomic units 1e12
 # - recipient monero address
@@ -132,8 +151,9 @@ transfer_simple ${FRED_WALLET_RPC_PORT} \$1 \$2
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/fred_transfer_to"
+# -----------------------------------------------------------------------------
 
-# Script to send funds from bill's primary account address to another address
+# Send funds from bill's primary account address to another address
 # inputs:
 # - money in atomic units 1e12
 # - recipient monero address
@@ -144,8 +164,9 @@ transfer_simple ${BILL_WALLET_RPC_PORT} \$1 \$2
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/bill_transfer_to"
+# -----------------------------------------------------------------------------
 
-# Script to send funds from charlie's primary account address to another address
+# Send funds from charlie's primary account address to another address
 # inputs:
 # - money in atomic units 1e12
 # - recipient monero address
@@ -156,8 +177,9 @@ transfer_simple ${CHARLIE_WALLET_RPC_PORT} \$1 \$2
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_transfer_to"
+# -----------------------------------------------------------------------------
 
-# Script to get fred's balance from an account
+# Get fred's balance from an account
 # input
 # - account number - defaults to account 0
 cat > "${HARNESS_CTL_DIR}/fred_balance" <<EOF
@@ -166,8 +188,9 @@ source monero_functions.inc
 get_balance ${FRED_WALLET_RPC_PORT} \$1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/fred_balance"
+# -----------------------------------------------------------------------------
 
-# Script to get bill's balance from an account
+# Get bill's balance from an account
 # input
 # - account number - defaults to account 0
 cat > "${HARNESS_CTL_DIR}/bill_balance" <<EOF
@@ -176,8 +199,9 @@ source monero_functions.inc
 get_balance ${BILL_WALLET_RPC_PORT} \$1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/bill_balance"
+# -----------------------------------------------------------------------------
 
-# Script to get charlie's balance from an account
+# Get charlie's balance from an account
 # input
 # - account number - defaults to account 0
 cat > "${HARNESS_CTL_DIR}/charlie_balance" <<EOF
@@ -186,18 +210,72 @@ source monero_functions.inc
 get_balance ${CHARLIE_WALLET_RPC_PORT} \$1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_balance"
+# -----------------------------------------------------------------------------
+
+# Export outputs from tx builder view wallet
+# output:
+# - exported_outputs file
+# this will be imported into the cold wallet manually using monero-wallet-cli 
+cat > "${HARNESS_CTL_DIR}/bv_export_outputs" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+export_outputs ${TX_BUILDER_VIEW_WALLET_RPC_PORT}
+EOF
+chmod +x "${HARNESS_CTL_DIR}/bv_export_outputs"
+
+# Import key images to tx builder view wallet
+# input:
+# - exported_key_images file
+#   produced by the cold wallet manually using monero-wallet-cli
+cat > "${HARNESS_CTL_DIR}/bv_import_key_images" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+EOF
+chmod +x "${HARNESS_CTL_DIR}/bv_import_key_images"
+
+# Prepare an unsigned tx with the builder view wallet
+# output:
+# - unsigned-monero-tx
+# This will be signed by the cold wallet manually using monero-wallet-cli
+cat > "${HARNESS_CTL_DIR}/bv_prepare_unsigned_tx" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+EOF
+chmod +x "${HARNESS_CTL_DIR}/bv_prepare_unsigned_tx"
+
+# Script to import key images to tx builder view wallet
+# input:
+# - signed_monero_tx file
+#   produced by the cold wallet manually using monero-wallet-cli
+cat > "${HARNESS_CTL_DIR}/bv_submit_transfer" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+EOF
+chmod +x "${HARNESS_CTL_DIR}/bv_submit_transfer"
+# -----------------------------------------------------------------------------
 
 # Shutdown script
 cat > "${NODES_ROOT}/harness-ctl/quit" <<EOF
 #!/usr/bin/env bash
+if [ -z "$NOMINER" ]
+then
+   tmux send-keys -t $SESSION:7 C-c
+fi
+sleep 0.05
+tmux send-keys -t $SESSION:6 C-c
+sleep 0.05
+tmux send-keys -t $SESSION:5 C-c
+sleep 0.05
+tmux send-keys -t $SESSION:4 C-c
+sleep 0.05
 tmux send-keys -t $SESSION:3 C-c
 sleep 0.05
 tmux send-keys -t $SESSION:2 C-c
 sleep 0.05
 tmux send-keys -t $SESSION:1 C-c
 sleep 0.05
-# . . . 
 tmux kill-session
+sleep 0.05
 EOF
 chmod +x "${HARNESS_CTL_DIR}/quit"
 
@@ -421,6 +499,29 @@ generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 10
 # let all the wallets catch up
 sleep 7
 
+# get key images from tx_builder
+export_key_images ${TX_BUILDER_WALLET_RPC_PORT}
+sleep 1
+export_key_images ${TX_BUILDER_WALLET_RPC_PORT}
+sleep 1
+export_key_images ${TX_BUILDER_WALLET_RPC_PORT}
+sleep 1
+export_key_images ${TX_BUILDER_WALLET_RPC_PORT}
+sleep 1
+export_key_images ${TX_BUILDER_WALLET_RPC_PORT}
+sleep 1
+export_key_images ${TX_BUILDER_WALLET_RPC_PORT}
+sleep 1
+export_key_images ${TX_BUILDER_WALLET_RPC_PORT}
+sleep 1
+
+# now kill tx_builder Hot wallet to enable a cold wallet to be made and used
+# offline manually using the monero-wallet-cli tool
+stop_wallet ${TX_BUILDER_WALLET_RPC_PORT}
+sleep 0.5
+tmux send-keys -t $SESSION:5 "echo \"${TX_BUILDER_WALLET_NAME}\" is now offline to enable a Cold wallet" C-m
+tmux send-keys -t $SESSION:0 "echo \"${TX_BUILDER_WALLET_NAME}\" is now offline to enable a Cold wallet" C-m
+
 # Watch miner
 if [ -z "$NOMINER" ]
 then
@@ -433,5 +534,3 @@ fi
 tmux send-keys -t $SESSION:0 "set -o history" C-m
 tmux select-window -t $SESSION:0
 tmux attach-session -t $SESSION
-
-echo "harness set up"

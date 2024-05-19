@@ -1,0 +1,8 @@
+penting: stop window 7 watch mining ^C
+
+online tx_builder_view => unsigned_txset_hex, outputs_data_hex, signed_key_images.json
+
+wallet_transfer_no_relay.sh => unsigned_txset_hex
+wallet_export_outputs.sh    => outputs_data_hex
+wallet_export_key_images.sh => signed_key_images.json
+
