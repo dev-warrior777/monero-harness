@@ -1,9 +1,20 @@
 #!/usr/bin/env bash
 
+# https://www.getmonero.org/resources/developer-guides/daemon-rpc.html#
+
+daemon-rpc-request() {    # older rpc style
+	local port="${1:?}"   # monerod port
+	local method="${2:?}" # Non-JSON RPC method name
+	local params="${3:?}" # JSON parameters to method
+	curl --http0.9 "http://localhost:${port}/${method}" \
+		-d "${params}" \
+		-H 'Content-Type: application/json'
+}
+
 # https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
 
-monero-rpc-request() {
-	local port="${1:?}"   # can be a monerod or monero-wallet-rpc port
+monero-rpc-request() {    # newer json2 style
+	local port="${1:?}"   # monerod or monero-wallet-rpc port
 	local method="${2:?}" # RPC method name
 	local params="${3:?}" # JSON parameters to method
 	curl --http0.9 "http://localhost:${port}/json_rpc" \
@@ -25,11 +36,19 @@ get_info() {
 
 # mine into a mining (primary) address
 generate() {
-	local mine_addr="${1:?input a valid mining (primary) address}"
+	local mine_addr="${1:?input a valid mine to (primary) address}"
 	local port="${2:?input a valid daemon rpc port}"
 	local num_blocks="${3:-1}"
 	params="{\"amount_of_blocks\":${num_blocks},\"wallet_address\":\"${mine_addr}\",\"starting_nonce\": 0}"
 	monero-rpc-request "${port}" "generateblocks" "${params}"
+}
+
+sendrawtransaction() {
+	local port="${1:?input a valid daemon rpc port}"
+	local tx_as_hex="${2:?input a valid tx hex string}"
+	local do_not_relay="${3:-false}"
+	params="{\"tx_as_hex\":\"${tx_as_hex}\",\"do_not_relay\":${do_not_relay}}"
+	daemon-rpc-request "${port}" "sendrawtransaction" "${params}"
 }
 
 # Wallets
@@ -69,9 +88,31 @@ create_wallet() {
 	monero-rpc-request "${port}" "create_wallet" "${params}" | jq '.'
 }
 
+open_wallet() {
+	local port="${1:?input a monero wallet port}"
+	local wallet_name="${2:?specify wallet name}"
+	local pass="${3:-""}" # default is no password ""
+	params="{\"filename\":\"${wallet_name}\",\"password\":\"${pass}\",\"language\":\"English\"}"
+	monero-rpc-request "${port}" "open_wallet" "${params}" | jq '.'
+}
+
 refresh_wallet() {
 	local port="${1:?input a monero wallet port}"
 	monero-rpc-request "${port}" "refresh" "{}"
+}
+
+# save wallet and close; can reopen
+close_wallet() {
+	local port="${1:?input a valid wallet rpc port}"
+	params="{}"
+	monero-rpc-request ${port} "close_wallet" "${params}"
+}
+
+# save wallet and exit monero-wallet-rpc process
+stop_wallet() {
+	local port="${1:?input a valid wallet rpc port}"
+	params="{}"
+	monero-rpc-request ${port} "stop_wallet" "${params}"
 }
 
 # get the primary address of a wallet account 0 address index 0
@@ -88,6 +129,14 @@ get_balance() {
 	local account="${2:-0}"
 	params="{\"account_index\":${account}}" # no sub-addresses
 	monero-rpc-request "${port}" "get_balance" "${params}"
+}
+
+incoming_transfers() {
+	local port="${1:?input a valid wallet rpc port}"
+	local transfer_type="${2:-all}"
+	# all, available (not yet spent) or unavailable (spent)
+	params="{\"transfer_type\":\"${transfer_type}\"}"
+	monero-rpc-request "${port}" "incoming_transfers" "${params}"
 }
 
 # get a key from a wallet - key_type is either "view_key" or "mnemonic"
@@ -110,16 +159,68 @@ transfer_simple() {
 	monero-rpc-request "${port}" "transfer" "${params}"
 }
 
+# Online Tx Creation & Offline Signing
+
+# export view-only wallet outputs to file exported_outputs (todo:write to file)
+export_outputs() {
+	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
+	params="{\"all\":true}"
+	monero-rpc-request "${port}" "export_outputs" "${params}" | jq '.'
+}
+
+import_outputs() {
+	local port="${1:?input a valid wallet rpc port for an offline cold wallet}"
+	local outputs_data_hex="${2:?input a valid outputs data hex string}"
+	params="{\"outputs_data_hex\":\"${outputs_data_hex}\"}"
+	echo "${params}"
+	monero-rpc-request "${port}" "import_outputs" "${params}"
+}
+
+export_key_images() {
+	local port="${1:?input a valid wallet rpc port for an offline cold wallet}"
+	params="{\"all\":true}"
+	monero-rpc-request "${port}" "export_key_images" "${params}" | jq '.'
+}
+
+# import key images from cold wallet generated exported_key_images file
+import_key_images() {
+	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
+	local signed_key_images="${2:?input a a set valid  key images}" # json array of signed key images:
+	params="{\"signed_key_images\":\"${signed_key_images}\"}"
+	monero-rpc-request "${port}" "import_key_images" "${params}"
+}
+
 # transfer monero to 1 recipient at their account 0, subaddress-indeces [0] 
-# but do not send.
-# 
+# but do not send. Iff it is called for a view only wallet (like watch only)
+# an unsigned_txset (unsigned txs) will be returned. This can then be signed
+# by the parent full wallet, but offline (i.e. not connected to alpha node).
+#
+# Note: This is for online unsigned tx creation and offline signing and can
+# also be used with a hardware wallet device like trezor. As a consequence not
+# only must the offline wallet have no connection to the monerod it can never
+# have had any connection to monerod or it is considered a Hot wallet and thus
+# is prevented from importing outputs by the monero code.
+# https://github.com/monero-project/monero/issues/9333
+#
 transfer_no_relay() {
-	local port="${1:?input a valid wallet rpc port}"
+	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
 	local amount="${2:?input an amount of monero to send in atomic units 1e12}"
 	local address="${3:?input a valid destination wallet address}"
 	destinations="[{\"amount\":${amount},\"address\":\"${address}\"}]"
-    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"do_not_relay\":true,\"get_tx_key\": true"
+    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"do_not_relay\":true,\"get_tx_key\":true,\"get_tx_hex\":true,\"get_tx_metadata\":true"
 	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\"}], "${fixed_params}" }"
 	echo "${params}"
 	monero-rpc-request "${port}" "transfer" "${params}"
 }
+
+# sign a prepared unsigned txset
+# 
+# Note: can only be done by an offline cold wallet that has never been "online"
+sign_transfer() {
+	local port="${1:?input a valid wallet rpc port for a cold wallet}"
+	local unsigned_txset="${2:?input an unsigned tx set}"
+	params="{\"unsigned_txset\":\"${unsigned_txset}\"}"
+	echo "${params}"
+	monero-rpc-request "${port}" "sign_transfer" "${params}"
+}
+

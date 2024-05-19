@@ -8,7 +8,8 @@ basic-harness/
 local_test/
 *.log
 jq.sh
-harness-no-tmux.sh
+_harness-no-tmux.sh
+signing_sequence.txt
 
 # work
 work-sheets.csv

@@ -8,6 +8,8 @@
 
 export PATH=$PATH:~/monero-x86_64-linux-gnu-v0.18.3.3
 
+export NOMINER="1"
+
 ################################################################################
 # Monero RPC functions
 ################################################################################
@@ -37,6 +39,7 @@ export ALPHA_NODE="${LOCALHOST}:${ALPHA_NODE_PORT}"
 export FRED_WALLET_RPC_PORT="28084"
 export BILL_WALLET_RPC_PORT="28184"
 export CHARLIE_WALLET_RPC_PORT="28284"
+export CHARLIE_VIEW_WALLET_RPC_PORT="28384"
 
 # wallet seeds, passwords & primary addresses
 FRED_WALLET_SEED="vibrate fever timber cuffs hunter terminal dilute losing light because nabbing slower royal brunt gnaw vats fishing tipsy toxic vague oscar fudge mice nasty light"
@@ -53,12 +56,15 @@ CHARLIE_WALLET_SEED="tilt equip bikini nylon ardent asylum eight vane gyrate ven
 export CHARLIE_WALLET_NAME="charlie"
 export CHARLIE_WALLET_PASS=""
 export CHARLIE_WALLET_PRIMARY_ADDRESS="453w1dEoNE1HjKzKVpAU14Honzenqs5VKKQWHb7RuNHLa4ekXhXnGhR6RuttNpvjbtDjzy8pTgz5j4ZSsWQqyxSDBVQ4WCk"
+export CHARLIE_WALLET_VIEWKEY="ff3bef320b8268cef410b78c91f34dfc995c72fcb1b498f7a732d76a42a9e207"
+export CHARLIE_VIEW_WALLET_NAME="charlie_view"
 
 # data dir
 NODES_ROOT=~/dextest/xmr
 FRED_WALLET_DIR="${NODES_ROOT}/wallets/fred"
 BILL_WALLET_DIR="${NODES_ROOT}/wallets/bill"
 CHARLIE_WALLET_DIR="${NODES_ROOT}/wallets/charlie"
+CHARLIE_VIEW_WALLET_DIR="${NODES_ROOT}/wallets/charlie_view"
 HARNESS_CTL_DIR="${NODES_ROOT}/harness-ctl"
 ALPHA_DATA_DIR="${NODES_ROOT}/alpha"
 ALPHA_REGTEST_CFG="${ALPHA_DATA_DIR}/alpha.conf"
@@ -69,6 +75,7 @@ fi
 mkdir -p "${FRED_WALLET_DIR}"
 mkdir -p "${BILL_WALLET_DIR}"
 mkdir -p "${CHARLIE_WALLET_DIR}"
+mkdir -p "${CHARLIE_VIEW_WALLET_DIR}"
 mkdir -p "${HARNESS_CTL_DIR}"
 mkdir -p "${ALPHA_DATA_DIR}"
 touch    "${ALPHA_REGTEST_CFG}"           # currently empty
@@ -85,15 +92,16 @@ cp monero_functions.inc ${HARNESS_CTL_DIR}
 ################################################################################
 echo "Writing ctl scripts"
 
-# Node info script
+# Node info
 cat > "${HARNESS_CTL_DIR}/alpha_info" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
 get_info ${ALPHA_NODE_RPC_PORT}
 EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_info"
+# -----------------------------------------------------------------------------
 
-# Mine script - mine to bill-the-miner
+# Mine to bill-the-miner
 # inputs:
 # - number of blocks to mine
 cat > "${HARNESS_CTL_DIR}/mine-to-bill" <<EOF
@@ -103,8 +111,9 @@ generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} \$1
 sleep 2
 EOF
 chmod +x "${HARNESS_CTL_DIR}/mine-to-bill"
+# -----------------------------------------------------------------------------
 
-# Script to send funds from fred's primary account address to another address
+# Send funds from fred's primary account address to another address
 # inputs:
 # - money in atomic units 1e12
 # - recipient monero address
@@ -115,8 +124,9 @@ transfer_simple ${FRED_WALLET_RPC_PORT} \$1 \$2
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/fred_transfer_to"
+# -----------------------------------------------------------------------------
 
-# Script to send funds from bill's primary account address to another address
+# Send funds from bill's primary account address to another address
 # inputs:
 # - money in atomic units 1e12
 # - recipient monero address
@@ -127,8 +137,9 @@ transfer_simple ${BILL_WALLET_RPC_PORT} \$1 \$2
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/bill_transfer_to"
+# -----------------------------------------------------------------------------
 
-# Script to send funds from charlie's primary account address to another address
+# Send funds from charlie's primary account address to another address
 # inputs:
 # - money in atomic units 1e12
 # - recipient monero address
@@ -139,8 +150,9 @@ transfer_simple ${CHARLIE_WALLET_RPC_PORT} \$1 \$2
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_transfer_to"
+# -----------------------------------------------------------------------------
 
-# Script to get fred's balance from an account
+# Get fred's balance from an account
 # input
 # - account number - defaults to account 0
 cat > "${HARNESS_CTL_DIR}/fred_balance" <<EOF
@@ -149,8 +161,9 @@ source monero_functions.inc
 get_balance ${FRED_WALLET_RPC_PORT} \$1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/fred_balance"
+# -----------------------------------------------------------------------------
 
-# Script to get bill's balance from an account
+# Get bill's balance from an account
 # input
 # - account number - defaults to account 0
 cat > "${HARNESS_CTL_DIR}/bill_balance" <<EOF
@@ -159,8 +172,9 @@ source monero_functions.inc
 get_balance ${BILL_WALLET_RPC_PORT} \$1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/bill_balance"
+# -----------------------------------------------------------------------------
 
-# Script to get charlie's balance from an account
+# Get charlie's balance from an account
 # input
 # - account number - defaults to account 0
 cat > "${HARNESS_CTL_DIR}/charlie_balance" <<EOF
@@ -169,18 +183,87 @@ source monero_functions.inc
 get_balance ${CHARLIE_WALLET_RPC_PORT} \$1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_balance"
+# -----------------------------------------------------------------------------
+
+# Get incoming transfers to fred's wallet
+# input
+# - transfer_type - defualts to "all"
+cat > "${HARNESS_CTL_DIR}/fred_incoming_transfers" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+incoming_transfers ${FRED_WALLET_RPC_PORT} \$1
+EOF
+chmod +x "${HARNESS_CTL_DIR}/fred_incoming_transfers"
+# -----------------------------------------------------------------------------
+
+# Get incoming transfers to charlie's wallet
+# input
+# - transfer_type - defualts to "all"
+cat > "${HARNESS_CTL_DIR}/charlie_incoming_transfers" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+incoming_transfers ${CHARLIE_WALLET_RPC_PORT} \$1
+EOF
+chmod +x "${HARNESS_CTL_DIR}/charlie_incoming_transfers"
+# -----------------------------------------------------------------------------
+
+
+# Export outputs from charlie view wallet
+# output:
+# - exported_outputs file
+cat > "${HARNESS_CTL_DIR}/charlie_view_export_outputs" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+export_outputs ${CHARLIE_VIEW_WALLET_RPC_PORT}
+EOF
+chmod +x "${HARNESS_CTL_DIR}/charlie_view_export_outputs"
+# -----------------------------------------------------------------------------
+
+# Build a xigned tx with charlie wallet
+# inputs
+# - money in atomic units 1e12
+# - recipient monero address
+# outputs:
+# - tx_blob
+# - other tx metadata 
+cat > "${HARNESS_CTL_DIR}/charlie_build_tx" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+transfer_no_relay ${CHARLIE_WALLET_RPC_PORT} \$1 \$2
+EOF
+chmod +x "${HARNESS_CTL_DIR}/charlie_build_tx"
+# -----------------------------------------------------------------------------
+
+# Get basic info on all wallets from env
+cat > "${HARNESS_CTL_DIR}/wallets" <<EOF
+#!/usr/bin/env bash
+env | grep FRED
+env | grep BILL
+env | grep CHARLIE
+EOF
+chmod +x "${HARNESS_CTL_DIR}/wallets"
+# -----------------------------------------------------------------------------
 
 # Shutdown script
 cat > "${NODES_ROOT}/harness-ctl/quit" <<EOF
 #!/usr/bin/env bash
+if [ -z "$NOMINER" ]
+then
+   tmux send-keys -t $SESSION:6 C-c
+fi
+sleep 0.05
+tmux send-keys -t $SESSION:5 C-c
+sleep 0.05
+tmux send-keys -t $SESSION:4 C-c
+sleep 0.05
 tmux send-keys -t $SESSION:3 C-c
 sleep 0.05
 tmux send-keys -t $SESSION:2 C-c
 sleep 0.05
 tmux send-keys -t $SESSION:1 C-c
 sleep 0.05
-# . . . 
 tmux kill-session
+sleep 0.05
 EOF
 chmod +x "${HARNESS_CTL_DIR}/quit"
 
@@ -223,7 +306,7 @@ tmux send-keys -t $SESSION:1 "monerod \
    --rpc-bind-ip 127.0.0.1 \
    --rpc-bind-port ${ALPHA_NODE_RPC_PORT} \
    --fixed-difficulty 1 \
-   --log-level 1; tmux wait-for -S alphaxmr" C-m
+   --log-level 2; tmux wait-for -S alphaxmr" C-m
 
 sleep 5
 
@@ -281,6 +364,23 @@ tmux send-keys -t $SESSION:4 "monero-wallet-rpc \
 
 sleep 2
 
+# Start the fourth wallet server - window 5
+echo "starting charlie_view wallet client"
+
+tmux new-window -t $SESSION:5 -n 'charlie_view' $SHELL
+tmux send-keys -t $SESSION:5 "set +o history" C-m
+tmux send-keys -t $SESSION:5 "cd ${CHARLIE_VIEW_WALLET_DIR}" C-m
+
+tmux send-keys -t $SESSION:5 "monero-wallet-rpc \
+   --rpc-bind-ip 127.0.0.1 \
+   --rpc-bind-port ${CHARLIE_VIEW_WALLET_RPC_PORT} \
+   --wallet-dir ${CHARLIE_VIEW_WALLET_DIR} \
+   --disable-rpc-login \
+   --allow-mismatched-daemon-version; tmux wait-for -S builderxmr" C-m
+
+sleep 2
+
+
 ################################################################################
 # Create the wallets
 ################################################################################
@@ -315,7 +415,10 @@ generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 60
 sleep 2
 generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 60
 # let bill's wallet catch up - time sensitive: it is abnormal to mine 300 blocks
-sleep 7
+sleep 5
+
+refresh_wallet ${BILL_WALLET_RPC_PORT} | jq '.'
+sleep 1
 
 # bill starts with 180 XMR 144 spendable
 get_balance ${BILL_WALLET_RPC_PORT}
@@ -333,6 +436,22 @@ do
    sleep 1
 done
 
+# generate charlie view only wallet
+generate_from_keys ${CHARLIE_VIEW_WALLET_RPC_PORT} \
+   "${CHARLIE_VIEW_WALLET_NAME}" \
+   "${CHARLIE_WALLET_PRIMARY_ADDRESS}" \
+   "" \
+   "${CHARLIE_WALLET_VIEWKEY}" \
+   "${CHARLIE_WALLET_PASS}"
+
+refresh_wallet ${FRED_WALLET_RPC_PORT} | jq '.'
+sleep 1
+refresh_wallet ${BILL_WALLET_RPC_PORT} | jq '.'
+sleep 1
+refresh_wallet ${CHARLIE_WALLET_RPC_PORT} | jq '.'
+sleep 1
+refresh_wallet ${CHARLIE_VIEW_WALLET_RPC_PORT} | jq '.'
+sleep 1
 # mine 10 more blocks to make all fred's and charlie's money spendable (normal tx needs 10 confirmations)
 generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 10
 # let all the wallets catch up
@@ -341,9 +460,9 @@ sleep 7
 # Watch miner
 if [ -z "$NOMINER" ]
 then
-  tmux new-window -t $SESSION:5 -n "miner" $SHELL
-  tmux send-keys -t $SESSION:5 "cd ${NODES_ROOT}/harness-ctl" C-m
-  tmux send-keys -t $SESSION:5 "watch -n 15 ./mine-to-bill 1" C-m
+  tmux new-window -t $SESSION:6 -n "miner" $SHELL
+  tmux send-keys -t $SESSION:6 "cd ${NODES_ROOT}/harness-ctl" C-m
+  tmux send-keys -t $SESSION:6 "watch -n 15 ./mine-to-bill 1" C-m
 fi
 
 # Re-enable history and attach to the control session.
