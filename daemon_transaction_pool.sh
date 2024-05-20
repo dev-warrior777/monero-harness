@@ -3,4 +3,4 @@
 # TEST ONLY
 source monero_functions.inc
 
-query_key $1 $2
+get_transaction_pool $1

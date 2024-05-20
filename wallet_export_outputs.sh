@@ -3,4 +3,4 @@
 # TEST ONLY
 source monero_functions.inc
 
-query_key $1 $2
+export_outputs $1 $2

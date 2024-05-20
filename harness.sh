@@ -101,6 +101,27 @@ EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_info"
 # -----------------------------------------------------------------------------
 
+# Send a raw signed tx to monerod
+# inputs:
+# - tx as hex (from tx_blob returned by <wallet_name>_build_tx)
+# - do_not_relay to other nodes - defaults to false
+cat > "${HARNESS_CTL_DIR}/alpha_sendrawtransaction" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+sendrawtransaction ${ALPHA_NODE_RPC_PORT} \$1 \$2
+EOF
+chmod +x "${HARNESS_CTL_DIR}/alpha_sendrawtransaction"
+# -----------------------------------------------------------------------------
+
+# Mempool info
+cat > "${HARNESS_CTL_DIR}/alpha_transaction_pool" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+get_transaction_pool ${ALPHA_NODE_RPC_PORT}
+EOF
+chmod +x "${HARNESS_CTL_DIR}/alpha_transaction_pool"
+# -----------------------------------------------------------------------------
+
 # Mine to bill-the-miner
 # inputs:
 # - number of blocks to mine
@@ -207,10 +228,9 @@ EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_incoming_transfers"
 # -----------------------------------------------------------------------------
 
-
 # Export outputs from charlie view wallet
 # output:
-# - exported_outputs file
+# - exported_outputs (array of key images and ephemeral signatures)
 cat > "${HARNESS_CTL_DIR}/charlie_view_export_outputs" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
@@ -219,22 +239,39 @@ EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_view_export_outputs"
 # -----------------------------------------------------------------------------
 
-# Build a xigned tx with charlie wallet
+# Build a xigned tx with fred wallet
 # inputs
 # - money in atomic units 1e12
 # - recipient monero address
+# - lock time in blocks after which the money can be spent (defaults to 0; no locking)
 # outputs:
 # - tx_blob
-# - other tx metadata 
+# - tx_hash 
+cat > "${HARNESS_CTL_DIR}/fred_build_tx" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+transfer_no_relay ${FRED_WALLET_RPC_PORT} \$1 \$2 \$3 | jq -nr '[inputs] | add | .result.tx_blob, .result.tx_hash'
+EOF
+chmod +x "${HARNESS_CTL_DIR}/fred_build_tx"
+# -----------------------------------------------------------------------------
+
+# Build a signed tx with charlie wallet
+# inputs
+# - money in atomic units 1e12
+# - recipient monero address
+# - lock time in blocks after which the money can be spent (defaults to 0; no locking)
+# outputs:
+# - tx_blob
+# - tx_hash 
 cat > "${HARNESS_CTL_DIR}/charlie_build_tx" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-transfer_no_relay ${CHARLIE_WALLET_RPC_PORT} \$1 \$2
+transfer_no_relay ${CHARLIE_WALLET_RPC_PORT} \$1 \$2 \$3 | jq -nr '[inputs] | add | .result.tx_blob, .result.tx_hash'
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_build_tx"
 # -----------------------------------------------------------------------------
 
-# Get basic info on all wallets from env
+# Get basic info on all wallets from env which can be used in the scripts above
 cat > "${HARNESS_CTL_DIR}/wallets" <<EOF
 #!/usr/bin/env bash
 env | grep FRED

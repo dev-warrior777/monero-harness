@@ -46,9 +46,23 @@ generate() {
 sendrawtransaction() {
 	local port="${1:?input a valid daemon rpc port}"
 	local tx_as_hex="${2:?input a valid tx hex string}"
-	local do_not_relay="${3:-false}"
+	local do_not_relay="${3:-false}" # do not relay to other nodes
 	params="{\"tx_as_hex\":\"${tx_as_hex}\",\"do_not_relay\":${do_not_relay}}"
 	daemon-rpc-request "${port}" "sendrawtransaction" "${params}"
+}
+
+get_transaction_pool() {
+	local port="${1:?input a valid daemon rpc port}"
+	params="{}"
+	daemon-rpc-request "${port}" "get_transaction_pool" "${params}"
+}
+
+get_transactions() {
+	local port="${1:?input a valid daemon rpc port}"
+	local txs_hashes="${2:?input one or more tx hashes as a string 1,2,..}"
+	local decode_as_json="${3:-false}"
+	params="{\"txs_hashes\":[\"${txs_hashes}\"],\"decode_as_json\":${decode_as_json}}"
+	daemon-rpc-request "${port}" "get_transactions" "${params}"
 }
 
 # Wallets
@@ -88,17 +102,19 @@ create_wallet() {
 	monero-rpc-request "${port}" "create_wallet" "${params}" | jq '.'
 }
 
-open_wallet() {
-	local port="${1:?input a monero wallet port}"
-	local wallet_name="${2:?specify wallet name}"
-	local pass="${3:-""}" # default is no password ""
-	params="{\"filename\":\"${wallet_name}\",\"password\":\"${pass}\",\"language\":\"English\"}"
-	monero-rpc-request "${port}" "open_wallet" "${params}" | jq '.'
-}
-
+# refresh wallet from daemon known transfers
 refresh_wallet() {
 	local port="${1:?input a monero wallet port}"
 	monero-rpc-request "${port}" "refresh" "{}"
+}
+
+# open a wallet that has a '--wallet_dir' known to wallet server in the dextest/monero/wallets tree
+open_wallet() {
+	local port="${1:?input a valid wallet rpc port}"
+	local filename="${2:?input a valid wallet filename such a fred, charlie, etc.}"
+	local password="${3:-""}" # password defaults to "" no password
+	params="{\"filename\":\"${filename}\",\"password\":\"${password}\"}"
+	monero-rpc-request ${port} "open_wallet" "${params}"
 }
 
 # save wallet and close; can reopen
@@ -139,7 +155,7 @@ incoming_transfers() {
 	monero-rpc-request "${port}" "incoming_transfers" "${params}"
 }
 
-# get a key from a wallet - key_type is either "view_key" or "mnemonic"
+# get a key from a wallet - key_type is either "view_key" or "spend_key" or "mnemonic"
 query_key() {
 	local port="${1:?input a valid wallet rpc port}"
 	local key_type="${2,?input either view_key or mnemonic}"
@@ -153,7 +169,7 @@ transfer_simple() {
 	local amount="${2:?input an amount of monero to send in atomic units 1e12}"
 	local address="${3:?input a valid destination wallet address}"
 	destinations="[{\"amount\":${amount},\"address\":\"${address}\"}]"
-    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"ring_size\":7,\"get_tx_key\": true"
+    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"ring_size\":11,\"get_tx_key\": true"
 	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\"}], "${fixed_params}" }"
 	echo "${params}"
 	monero-rpc-request "${port}" "transfer" "${params}"
@@ -161,13 +177,14 @@ transfer_simple() {
 
 # Online Tx Creation & Offline Signing
 
-# export view-only wallet outputs to file exported_outputs (todo:write to file)
+# export wallet outputs
 export_outputs() {
-	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
+	local port="${1:?input a valid wallet rpc port}"
 	params="{\"all\":true}"
 	monero-rpc-request "${port}" "export_outputs" "${params}" | jq '.'
 }
 
+# import outputs into a cold wallet for offline signing process
 import_outputs() {
 	local port="${1:?input a valid wallet rpc port for an offline cold wallet}"
 	local outputs_data_hex="${2:?input a valid outputs data hex string}"
@@ -177,14 +194,13 @@ import_outputs() {
 }
 
 export_key_images() {
-	local port="${1:?input a valid wallet rpc port for an offline cold wallet}"
+	local port="${1:?input a valid wallet rpc port}"
 	params="{\"all\":true}"
 	monero-rpc-request "${port}" "export_key_images" "${params}" | jq '.'
 }
 
-# import key images from cold wallet generated exported_key_images file
 import_key_images() {
-	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
+	local port="${1:?input a valid wallet rpc port}"
 	local signed_key_images="${2:?input a a set valid  key images}" # json array of signed key images:
 	params="{\"signed_key_images\":\"${signed_key_images}\"}"
 	monero-rpc-request "${port}" "import_key_images" "${params}"
@@ -203,19 +219,22 @@ import_key_images() {
 # https://github.com/monero-project/monero/issues/9333
 #
 transfer_no_relay() {
-	local port="${1:?input a valid wallet rpc port for a view-only wallet}"
+	local port="${1:?input a valid wallet rpc port (view-only wallet only to generate unsigned tx for cold signing Only}"
 	local amount="${2:?input an amount of monero to send in atomic units 1e12}"
 	local address="${3:?input a valid destination wallet address}"
+	local unlock_time=${4:-0} # unlock after n blocks
 	destinations="[{\"amount\":${amount},\"address\":\"${address}\"}]"
-    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"do_not_relay\":true,\"get_tx_key\":true,\"get_tx_hex\":true,\"get_tx_metadata\":true"
-	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\"}], "${fixed_params}" }"
+    other_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"unlock_time\":\"${unlock_time}\",\"do_not_relay\":true,\"get_tx_key\":true,\"get_tx_hex\":true,\"get_tx_metadata\":true"
+	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\"}], "${other_params}" }"
 	echo "${params}"
 	monero-rpc-request "${port}" "transfer" "${params}"
 }
 
-# sign a prepared unsigned txset
+# sign a prepared unsigned txset -- offline manual experimental
 # 
 # Note: can only be done by an offline cold wallet that has never been "online"
+# use the monero-wallet-cli interactive tool instead in a manual process with
+# an unconnected charlie_view wallet which holds the inputs but not any keys.
 sign_transfer() {
 	local port="${1:?input a valid wallet rpc port for a cold wallet}"
 	local unsigned_txset="${2:?input an unsigned tx set}"
