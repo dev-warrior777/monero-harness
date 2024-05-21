@@ -8,8 +8,6 @@
 
 export PATH=$PATH:~/monero-x86_64-linux-gnu-v0.18.3.3
 
-export NOMINER="1"
-
 ################################################################################
 # Monero RPC functions
 ################################################################################
@@ -96,7 +94,7 @@ echo "Writing ctl scripts"
 cat > "${HARNESS_CTL_DIR}/alpha_info" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-get_info ${ALPHA_NODE_RPC_PORT} | more
+get_info ${ALPHA_NODE_RPC_PORT}
 EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_info"
 # -----------------------------------------------------------------------------
@@ -108,7 +106,7 @@ chmod +x "${HARNESS_CTL_DIR}/alpha_info"
 cat > "${HARNESS_CTL_DIR}/alpha_sendrawtransaction" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-sendrawtransaction ${ALPHA_NODE_RPC_PORT} \$1 \$2 2>/dev/null | more
+sendrawtransaction ${ALPHA_NODE_RPC_PORT} \$1 \$2 2>/dev/null
 EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_sendrawtransaction"
 # -----------------------------------------------------------------------------
@@ -120,7 +118,7 @@ chmod +x "${HARNESS_CTL_DIR}/alpha_sendrawtransaction"
 cat > "${HARNESS_CTL_DIR}/alpha_get_transactions" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-get_transactions ${ALPHA_NODE_RPC_PORT} \$1 \$2 2>/dev/null | more
+get_transactions ${ALPHA_NODE_RPC_PORT} \$1 \$2 2>/dev/null
 EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_get_transactions"
 # -----------------------------------------------------------------------------
@@ -129,7 +127,7 @@ chmod +x "${HARNESS_CTL_DIR}/alpha_get_transactions"
 cat > "${HARNESS_CTL_DIR}/alpha_transaction_pool" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-get_transaction_pool ${ALPHA_NODE_RPC_PORT} 2>/dev/null | more
+get_transaction_pool ${ALPHA_NODE_RPC_PORT} 2>/dev/null
 EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_transaction_pool"
 # -----------------------------------------------------------------------------
@@ -154,7 +152,7 @@ chmod +x "${HARNESS_CTL_DIR}/mine-to-bill"
 cat > "${HARNESS_CTL_DIR}/fred_transfer_to" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-transfer_simple ${FRED_WALLET_RPC_PORT} \$1 \$2 | more
+transfer_simple ${FRED_WALLET_RPC_PORT} \$1 \$2
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/fred_transfer_to"
@@ -168,7 +166,7 @@ chmod +x "${HARNESS_CTL_DIR}/fred_transfer_to"
 cat > "${HARNESS_CTL_DIR}/bill_transfer_to" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-transfer_simple ${BILL_WALLET_RPC_PORT} \$1 \$2 \$3 | more
+transfer_simple ${BILL_WALLET_RPC_PORT} \$1 \$2 \$3
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/bill_transfer_to"
@@ -182,7 +180,7 @@ chmod +x "${HARNESS_CTL_DIR}/bill_transfer_to"
 cat > "${HARNESS_CTL_DIR}/charlie_transfer_to" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-transfer_simple ${CHARLIE_WALLET_RPC_PORT} \$1 \$2 \$3 | more
+transfer_simple ${CHARLIE_WALLET_RPC_PORT} \$1 \$2 \$3
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_transfer_to"
@@ -221,13 +219,40 @@ EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_balance"
 # -----------------------------------------------------------------------------
 
+# Update fred's wallet from the daemon latest info
+cat > "${HARNESS_CTL_DIR}/fred_refresh_wallet" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+refresh_wallet ${FRED_WALLET_RPC_PORT}
+EOF
+chmod +x "${HARNESS_CTL_DIR}/fred_refresh_wallet"
+# -----------------------------------------------------------------------------
+
+# Update bill's wallet from the daemon latest info
+cat > "${HARNESS_CTL_DIR}/bill_refresh_wallet" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+refresh_wallet ${BILL_WALLET_RPC_PORT}
+EOF
+chmod +x "${HARNESS_CTL_DIR}/bill_refresh_wallet"
+# -----------------------------------------------------------------------------
+
+# Update charlie's wallet from the daemon latest info
+cat > "${HARNESS_CTL_DIR}/charlie_refresh_wallet" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+refresh_wallet ${CHARLIE_WALLET_RPC_PORT}
+EOF
+chmod +x "${HARNESS_CTL_DIR}/charlie_refresh_wallet"
+# -----------------------------------------------------------------------------
+
 # Get incoming transfers to fred's wallet
 # input
 # - transfer_type - defualts to "all"
 cat > "${HARNESS_CTL_DIR}/fred_incoming_transfers" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-incoming_transfers ${FRED_WALLET_RPC_PORT} \$1 | more
+incoming_transfers ${FRED_WALLET_RPC_PORT} \$1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/fred_incoming_transfers"
 # -----------------------------------------------------------------------------
@@ -238,7 +263,7 @@ chmod +x "${HARNESS_CTL_DIR}/fred_incoming_transfers"
 cat > "${HARNESS_CTL_DIR}/charlie_incoming_transfers" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-incoming_transfers ${CHARLIE_WALLET_RPC_PORT} \$1 | more
+incoming_transfers ${CHARLIE_WALLET_RPC_PORT} \$1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_incoming_transfers"
 # -----------------------------------------------------------------------------
@@ -249,7 +274,7 @@ chmod +x "${HARNESS_CTL_DIR}/charlie_incoming_transfers"
 cat > "${HARNESS_CTL_DIR}/charlie_view_export_outputs" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-export_outputs ${CHARLIE_VIEW_WALLET_RPC_PORT} | more
+export_outputs ${CHARLIE_VIEW_WALLET_RPC_PORT}
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_view_export_outputs"
 # -----------------------------------------------------------------------------
@@ -318,7 +343,6 @@ tmux kill-session
 sleep 0.05
 EOF
 chmod +x "${HARNESS_CTL_DIR}/quit"
-
 # -----------------------------------------------------------------------------
 
 # Commands help
@@ -328,6 +352,7 @@ source monero_functions.inc
 cmd_help | more
 EOF
 chmod +x "${HARNESS_CTL_DIR}/help"
+# -----------------------------------------------------------------------------
 
 ################################################################################
 # Configuration Files
@@ -438,10 +463,9 @@ tmux send-keys -t $SESSION:5 "monero-wallet-rpc \
    --rpc-bind-port ${CHARLIE_VIEW_WALLET_RPC_PORT} \
    --wallet-dir ${CHARLIE_VIEW_WALLET_DIR} \
    --disable-rpc-login \
-   --allow-mismatched-daemon-version; tmux wait-for -S builderxmr" C-m
+   --allow-mismatched-daemon-version; tmux wait-for -S charlieviewxmr" C-m
 
 sleep 2
-
 
 ################################################################################
 # Create the wallets
@@ -498,13 +522,14 @@ do
    sleep 1
 done
 
-# generate charlie view only wallet
+# generate charlie view only wallet (no spend key)
 generate_from_keys ${CHARLIE_VIEW_WALLET_RPC_PORT} \
    "${CHARLIE_VIEW_WALLET_NAME}" \
    "${CHARLIE_WALLET_PRIMARY_ADDRESS}" \
    "" \
    "${CHARLIE_WALLET_VIEWKEY}" \
    "${CHARLIE_WALLET_PASS}"
+sleep 1
 
 refresh_wallet ${FRED_WALLET_RPC_PORT} | jq '.'
 sleep 1
@@ -531,5 +556,3 @@ fi
 tmux send-keys -t $SESSION:0 "set -o history" C-m
 tmux select-window -t $SESSION:0
 tmux attach-session -t $SESSION
-
-echo "harness set up"

@@ -5,8 +5,8 @@ Monero development Harness - documentation and notes
 ## Useful Info
 
 Monero is very different than btc in that it does not provide a single rpc
-tool like `bitcoin-cli` but rather a set of json & non-json apis which can
-be used by sending curl requests for each one.
+tool like `bitcoin-cli` but rather a set of json 2.0 & other older json apis
+which can be accessed by sending curl requests for each one.
 
 Monero wallets are accounts based
 
@@ -39,14 +39,22 @@ By default background mining is set up and mines to bill wallet every 15s
 To disable:
 
 `export NOMINER="1" to your shell`
- 
+
  or else invoke the harness with:
 
 `NOMINER="1" ./harness.sh`
 
+You should disable if attempting the manual offline cold signing using `monero-wallet-cli`
+
+You should also ctl-C charlie & charlie_view wallets
+
 ### Run
 
-run `./harness.sh`
+`./harness.sh`
+
+### Data Directory
+
+![alt text](image-2.png)
 
 ### Commands Help
 
@@ -90,6 +98,11 @@ bill_balance
 - get bill wallet balance details
 - inputs: None
 
+bill_refresh_wallet
+
+- update bill's wallet from the daemon latest info
+- inputs: None
+
 bill_transfer_to
 
 - build, sign and broadcast a transaction from bill wallet to another address
@@ -100,6 +113,11 @@ bill_transfer_to
 charlie_balance
 
 - get charlie wallet balance details
+- inputs: None
+
+charlie_refresh_wallet
+
+- update charlie's wallet from the daemon latest info
 - inputs: None
 
 charlie_build_tx
@@ -135,6 +153,11 @@ charlie_view_export_outputs
 fred_balance
 
 - get fred wallet balance details
+- inputs: None
+
+fred_refresh_wallet
+
+- update fred's wallet from the daemon latest info
 - inputs: None
 
 fred_build_tx
