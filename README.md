@@ -56,6 +56,10 @@ You should also ctl-C charlie & charlie_view wallets
 
 ![alt text](image-2.png)
 
+### Known Issues
+
+The transaction spend locking needs more investigation
+
 ### Commands Help
 
 run `./help` from the tmux harness window 0
@@ -109,6 +113,7 @@ bill_transfer_to
 - inputs:
   - amount in in atomic units 1e12 - e.g. 1230000000000 echo = 1.23 XMR
   - address - recipient primary address - account index 0, subaddr_indeces [0]
+  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)
 
 charlie_balance
 
@@ -196,4 +201,4 @@ quit
 
 - shutdown daemons and the quit harness
 
-```text
+```
