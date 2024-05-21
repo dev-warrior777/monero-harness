@@ -4,7 +4,7 @@
 source monero_functions.inc
 
 # port - daemon port
-# tx_hashes - "hash1,hash2,..."
+# tx_hashes - "hash1,hash2,hash3,..."
 # decode_as_json
 
 get_transactions $1 $2 $3

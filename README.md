@@ -2,9 +2,19 @@
 
 Monero development Harness - documentation and notes
 
+## Useful Info
+
+Monero is very different than btc in that it does not provide a single rpc
+tool like `bitcoin-cli` but rather a set of json & non-json apis which can
+be used by sending curl requests for each one.
+
+Monero wallets are accounts based
+
+<https://web.getmonero.org/resources/moneropedia/account.html>
+
 ## Architecture
 
-![alt text](image.png)
+![alt text](image-1.png)
 
 Embedded in Tmux
 
@@ -16,14 +26,151 @@ Embedded in Tmux
 - **linux** (tested on Ubuntu 22.04)
 - **jq** (1.6)
 
+### Setup
+
+**monero-x86_64-linux-gnu-v0.18.3.3** should be in PATH
+
+`export PATH=$PATH:[path-to]/monero-x86_64-linux-gnu-v0.18.3.3`
+
+### Background Mining
+
+By default background mining is set up and mines to bill wallet every 15s
+
+To disable:
+
+`export NOMINER="1" to your shell`
+ 
+ or else invoke the harness with:
+
+`NOMINER="1" ./harness.sh`
+
 ### Run
 
 run `./harness.sh`
 
-## Useful Links
+### Commands Help
 
-<https://web.getmonero.org/resources/moneropedia>
+run `./help` from the tmux harness window 0
 
-Monero wallets are accounts based
+```text
 
-<https://web.getmonero.org/resources/moneropedia/account.html>
+Commands Help:
+--------------
+alpha_get_transactions
+
+- get transaction details for one or more txid
+- inputs:
+  - tx_hashes - hash1,hash2,hash3,...
+  - decode_as_json - Optional - returns more detail but in a escaped raw json format
+
+alpha_info
+
+- get running daemon details - height, etc.
+- inputs: None
+
+alpha_sendrawtransaction
+
+- broadcast a previously built signed tx
+- inputs:
+  - tx_as_hex string - can be generated with charlie_build_tx or fred_build_tx
+
+alpha_transaction_pool
+
+- get mempool details
+- inputs: None
+
+mine-to-bill
+
+- generate 1 or more blocks to bill wallet
+- inputs:
+  - num_blocks - defaults to 1
+
+bill_balance
+
+- get bill wallet balance details
+- inputs: None
+
+bill_transfer_to
+
+- build, sign and broadcast a transaction from bill wallet to another address
+- inputs:
+  - amount in in atomic units 1e12 - e.g. 1230000000000 echo = 1.23 XMR
+  - address - recipient primary address - account index 0, subaddr_indeces [0]
+
+charlie_balance
+
+- get charlie wallet balance details
+- inputs: None
+
+charlie_build_tx
+
+- build a signed tx for later broadcasting using alpha_send
+- inputs:
+  - amount in in atomic units 1e12 - e.g. 1230000000000 = 1.23 XMR
+  - address - recipient primary address - account index 0, subaddr_indeces [0]
+  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)
+-outputs:
+  - signed tx_blob
+  - tx_hash
+
+charlie_incoming_transfers
+
+- get a list of incoming mined transfers to charlie wallet
+- inputs: None
+
+charlie_transfer_to
+
+- build, sign and broadcast a transaction from charlie wallet to another address
+- inputs
+  - amount in in atomic units 1e12 - e.g. 1230000000000 echo = 1.23 XMR
+  - address - recipient primary address - account index 0, subaddr_indeces [0]
+  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)
+
+charlie_view_export_outputs
+
+- export charlie_view outputs - charlie_view knows the outputs but has no keys
+- inputs: None
+- only useful in offline, cold signing process using monero-wallet-cli interactive tool
+
+fred_balance
+
+- get fred wallet balance details
+- inputs: None
+
+fred_build_tx
+
+- build a signed tx for later broadcasting using alpha_send
+- inputs:
+  - amount in in atomic units 1e12 - e.g. 1230000000000 = 1.23 XMR
+  - address - recipient primary address - account index 0, subaddr_indeces [0]
+  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)
+-outputs:
+  - signed tx_blob
+  - tx_hash
+
+fred_incoming_transfers
+
+- get a list of incoming mined transfers to fred wallet
+- inputs: None
+
+fred_transfer_to
+
+- build, sign and broadcast a transaction from bill wallet to another address
+- inputs
+  - amount in in atomic units 1e12 - e.g. 1230000000000 echo = 1.23 XMR
+  - address - recipient primary address - account index 0, subaddr_indeces [0]
+  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)
+
+wallets
+
+- wallet details exported to the harness environment - useful for building commands in the harness window 0
+
+help
+
+- this help
+
+quit
+
+- shutdown daemons and the quit harness
+
+```text

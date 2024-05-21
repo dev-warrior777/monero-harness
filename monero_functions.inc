@@ -61,7 +61,18 @@ get_transactions() {
 	local port="${1:?input a valid daemon rpc port}"
 	local txs_hashes="${2:?input one or more tx hashes as a string 1,2,..}"
 	local decode_as_json="${3:-false}"
-	params="{\"txs_hashes\":[\"${txs_hashes}\"],\"decode_as_json\":${decode_as_json}}"
+	local txs_hashes_json=""
+	IFS=',' read -ra TXID <<< "$txs_hashes"
+	for i in "${TXID[@]}"; do
+  		 txs_hashes_json+="\""
+  		 txs_hashes_json+="$i"
+  		 txs_hashes_json+="\","
+	done
+	echo $txs_hashes_json
+	txs_hashes_json=${txs_hashes_json%?} # will work in BASH 3.x
+	echo $txs_hashes_json
+	params="{\"txs_hashes\":[${txs_hashes_json}],\"decode_as_json\":${decode_as_json}}"
+	echo $params
 	daemon-rpc-request "${port}" "get_transactions" "${params}"
 }
 
@@ -168,9 +179,10 @@ transfer_simple() {
 	local port="${1:?input a valid wallet rpc port}"
 	local amount="${2:?input an amount of monero to send in atomic units 1e12}"
 	local address="${3:?input a valid destination wallet address}"
+	local unlock_time=${4:-0} # unlock after n blocks
 	destinations="[{\"amount\":${amount},\"address\":\"${address}\"}]"
-    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"ring_size\":11,\"get_tx_key\": true"
-	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\"}], "${fixed_params}" }"
+    fixed_params="\"account_index\":0,\"subaddr_indices\":[0],\"priority\":0,\"ring_size\":11,\"get_tx_key\": true,\"get_tx_hex\":true"
+	params="{\"destinations\":[{\"amount\":${amount},\"address\":\"${address}\",\"unlock_time\":\"${unlock_time}\"}], "${fixed_params}" }"
 	echo "${params}"
 	monero-rpc-request "${port}" "transfer" "${params}"
 }
@@ -184,7 +196,7 @@ export_outputs() {
 	monero-rpc-request "${port}" "export_outputs" "${params}" | jq '.'
 }
 
-# import outputs into a cold wallet for offline signing process
+# import outputs into a cold wallet only for offline signing process
 import_outputs() {
 	local port="${1:?input a valid wallet rpc port for an offline cold wallet}"
 	local outputs_data_hex="${2:?input a valid outputs data hex string}"
@@ -208,7 +220,7 @@ import_key_images() {
 
 # transfer monero to 1 recipient at their account 0, subaddress-indeces [0] 
 # but do not send. Iff it is called for a view only wallet (like watch only)
-# an unsigned_txset (unsigned txs) will be returned. This can then be signed
+# an unsigned_txset (an unsigned tx) will be returned. This can then be signed
 # by the parent full wallet, but offline (i.e. not connected to alpha node).
 #
 # Note: This is for online unsigned tx creation and offline signing and can
@@ -243,3 +255,105 @@ sign_transfer() {
 	monero-rpc-request "${port}" "sign_transfer" "${params}"
 }
 
+cmd_help() {
+	echo "Commands Help:"
+	echo "--------------"
+	echo "alpha_get_transactions"
+	echo "- get transaction details for one or more txid"
+	echo "- inputs:"
+	echo "  - tx_hashes - hash1,hash2,hash3,..."
+	echo "  - decode_as_json - Optional - returns more detail but in a escaped raw json format"
+	echo ""
+	echo "alpha_info"
+	echo "- get running daemon details - height, etc."
+	echo "- inputs: None"
+	echo ""
+	echo "alpha_sendrawtransaction"
+	echo "- broadcast a previously built signed tx"
+	echo "- inputs:"
+	echo "  - tx_as_hex string - can be generated with charlie_build_tx or fred_build_tx"
+	echo ""
+	echo "alpha_transaction_pool"
+	echo "- get mempool details"
+	echo "- inputs: None"
+	echo ""
+	echo "mine-to-bill"
+	echo "- generate 1 or more blocks to bill wallet"
+	echo "- inputs:"
+	echo "  - num_blocks - defaults to 1"
+	echo ""
+	echo "bill_balance"
+	echo "- get bill wallet balance details"
+	echo "- inputs: None"
+	echo ""
+	echo "bill_transfer_to"
+	echo "- build, sign and broadcast a transaction from bill wallet to another address"
+	echo "- inputs:"
+	echo "  - amount in in atomic units 1e12 - e.g. 1230000000000 echo = 1.23 XMR"
+	echo "  - address - recipient primary address - account index 0, subaddr_indeces [0]"
+	echo ""
+	echo "charlie_balance"
+	echo "- get charlie wallet balance details"
+	echo "- inputs: None"
+	echo ""
+	echo "charlie_build_tx"
+	echo "- build a signed tx for later broadcasting using alpha_send"
+	echo "- inputs:"
+	echo "  - amount in in atomic units 1e12 - e.g. 1230000000000 = 1.23 XMR"
+	echo "  - address - recipient primary address - account index 0, subaddr_indeces [0]"
+	echo "  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)"
+	echo "-outputs:"
+	echo "  - signed tx_blob"
+	echo "  - tx_hash"
+	echo ""
+	echo "charlie_incoming_transfers"
+	echo "- get a list of incoming mined transfers to charlie wallet"
+	echo "- inputs: None"
+	echo ""
+	echo "charlie_transfer_to"
+	echo "- build, sign and broadcast a transaction from charlie wallet to another address"
+	echo "- inputs"
+	echo "  - amount in in atomic units 1e12 - e.g. 1230000000000 echo = 1.23 XMR"
+	echo "  - address - recipient primary address - account index 0, subaddr_indeces [0]"
+	echo "  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)"
+	echo ""   
+	echo "charlie_view_export_outputs"
+	echo "- export charlie_view outputs - charlie_view knows the outputs but has no keys"
+	echo "- inputs: None"
+	echo "- only useful in offline, cold signing process using monero-wallet-cli interactive tool"
+	echo ""
+	echo "fred_balance"
+	echo "- get fred wallet balance details"
+	echo "- inputs: None"
+	echo ""
+	echo "fred_build_tx"
+	echo "- build a signed tx for later broadcasting using alpha_send"
+	echo "- inputs:"
+	echo "  - amount in in atomic units 1e12 - e.g. 1230000000000 = 1.23 XMR"
+	echo "  - address - recipient primary address - account index 0, subaddr_indeces [0]"
+	echo "  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)"
+	echo "-outputs:"
+	echo "  - signed tx_blob"
+	echo "  - tx_hash"
+	echo ""
+	echo "fred_incoming_transfers"
+	echo "- get a list of incoming mined transfers to fred wallet"
+	echo "- inputs: None"
+	echo ""
+	echo "fred_transfer_to"
+	echo "- build, sign and broadcast a transaction from bill wallet to another address"
+	echo "- inputs"
+	echo "  - amount in in atomic units 1e12 - e.g. 1230000000000 echo = 1.23 XMR"
+	echo "  - address - recipient primary address - account index 0, subaddr_indeces [0]"
+	echo "  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)"
+	echo ""
+	echo "wallets"
+	echo "- wallet details exported to the harness environment - useful for building commands in the harness window 0"
+	echo ""
+	echo "help"
+	echo "- this help"
+	echo ""
+	echo "quit"
+	echo "- shutdown daemons and the quit harness"
+	echo ""
+}

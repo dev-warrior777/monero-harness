@@ -92,11 +92,11 @@ cp monero_functions.inc ${HARNESS_CTL_DIR}
 ################################################################################
 echo "Writing ctl scripts"
 
-# Node info
+# Daemon info
 cat > "${HARNESS_CTL_DIR}/alpha_info" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-get_info ${ALPHA_NODE_RPC_PORT}
+get_info ${ALPHA_NODE_RPC_PORT} | more
 EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_info"
 # -----------------------------------------------------------------------------
@@ -108,16 +108,28 @@ chmod +x "${HARNESS_CTL_DIR}/alpha_info"
 cat > "${HARNESS_CTL_DIR}/alpha_sendrawtransaction" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-sendrawtransaction ${ALPHA_NODE_RPC_PORT} \$1 \$2
+sendrawtransaction ${ALPHA_NODE_RPC_PORT} \$1 \$2 2>/dev/null | more
 EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_sendrawtransaction"
+# -----------------------------------------------------------------------------
+
+# Get one or more transaction details from monerod
+# inputs:
+# - txids as hex string - "hash1,hash2,hash3,..."
+# - decode_as_json - defaults to false
+cat > "${HARNESS_CTL_DIR}/alpha_get_transactions" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+get_transactions ${ALPHA_NODE_RPC_PORT} \$1 \$2 2>/dev/null | more
+EOF
+chmod +x "${HARNESS_CTL_DIR}/alpha_get_transactions"
 # -----------------------------------------------------------------------------
 
 # Mempool info
 cat > "${HARNESS_CTL_DIR}/alpha_transaction_pool" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-get_transaction_pool ${ALPHA_NODE_RPC_PORT}
+get_transaction_pool ${ALPHA_NODE_RPC_PORT} 2>/dev/null | more
 EOF
 chmod +x "${HARNESS_CTL_DIR}/alpha_transaction_pool"
 # -----------------------------------------------------------------------------
@@ -129,7 +141,7 @@ cat > "${HARNESS_CTL_DIR}/mine-to-bill" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
 generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} \$1
-sleep 2
+sleep 1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/mine-to-bill"
 # -----------------------------------------------------------------------------
@@ -138,10 +150,11 @@ chmod +x "${HARNESS_CTL_DIR}/mine-to-bill"
 # inputs:
 # - money in atomic units 1e12
 # - recipient monero address
+# - lock time in blocks after which the money can be spent (defaults to 0; no locking)
 cat > "${HARNESS_CTL_DIR}/fred_transfer_to" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-transfer_simple ${FRED_WALLET_RPC_PORT} \$1 \$2
+transfer_simple ${FRED_WALLET_RPC_PORT} \$1 \$2 | more
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/fred_transfer_to"
@@ -151,10 +164,11 @@ chmod +x "${HARNESS_CTL_DIR}/fred_transfer_to"
 # inputs:
 # - money in atomic units 1e12
 # - recipient monero address
+# - lock time in blocks after which the money can be spent (defaults to 0; no locking)
 cat > "${HARNESS_CTL_DIR}/bill_transfer_to" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-transfer_simple ${BILL_WALLET_RPC_PORT} \$1 \$2
+transfer_simple ${BILL_WALLET_RPC_PORT} \$1 \$2 \$3 | more
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/bill_transfer_to"
@@ -164,10 +178,11 @@ chmod +x "${HARNESS_CTL_DIR}/bill_transfer_to"
 # inputs:
 # - money in atomic units 1e12
 # - recipient monero address
+# - lock time in blocks after which the money can be spent (defaults to 0; no locking)
 cat > "${HARNESS_CTL_DIR}/charlie_transfer_to" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-transfer_simple ${CHARLIE_WALLET_RPC_PORT} \$1 \$2
+transfer_simple ${CHARLIE_WALLET_RPC_PORT} \$1 \$2 \$3 | more
 sleep 0.5
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_transfer_to"
@@ -212,18 +227,18 @@ chmod +x "${HARNESS_CTL_DIR}/charlie_balance"
 cat > "${HARNESS_CTL_DIR}/fred_incoming_transfers" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-incoming_transfers ${FRED_WALLET_RPC_PORT} \$1
+incoming_transfers ${FRED_WALLET_RPC_PORT} \$1 | more
 EOF
 chmod +x "${HARNESS_CTL_DIR}/fred_incoming_transfers"
 # -----------------------------------------------------------------------------
 
 # Get incoming transfers to charlie's wallet
 # input
-# - transfer_type - defualts to "all"
+# - transfer_type - defaults to "all"
 cat > "${HARNESS_CTL_DIR}/charlie_incoming_transfers" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-incoming_transfers ${CHARLIE_WALLET_RPC_PORT} \$1
+incoming_transfers ${CHARLIE_WALLET_RPC_PORT} \$1 | more
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_incoming_transfers"
 # -----------------------------------------------------------------------------
@@ -234,7 +249,7 @@ chmod +x "${HARNESS_CTL_DIR}/charlie_incoming_transfers"
 cat > "${HARNESS_CTL_DIR}/charlie_view_export_outputs" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-export_outputs ${CHARLIE_VIEW_WALLET_RPC_PORT}
+export_outputs ${CHARLIE_VIEW_WALLET_RPC_PORT} | more
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_view_export_outputs"
 # -----------------------------------------------------------------------------
@@ -303,6 +318,16 @@ tmux kill-session
 sleep 0.05
 EOF
 chmod +x "${HARNESS_CTL_DIR}/quit"
+
+# -----------------------------------------------------------------------------
+
+# Commands help
+cat > "${NODES_ROOT}/harness-ctl/help" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+cmd_help | more
+EOF
+chmod +x "${HARNESS_CTL_DIR}/help"
 
 ################################################################################
 # Configuration Files
