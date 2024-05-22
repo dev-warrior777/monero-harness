@@ -234,6 +234,6 @@ help
 
 quit
 
-- shutdown daemons and the quit harness
+- shutdown daemons and quit the harness
 
 ```
