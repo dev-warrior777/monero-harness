@@ -18,6 +18,16 @@ Monero wallets are accounts based
 
 Embedded in Tmux
 
+- **alpha** is a monero p2p daemon
+
+- **bill** is a miner wallet .. you can top up more funds from bill if you run out
+
+- **fred** is a normal wallet user
+
+- **charlie** is a normal wallet user
+
+- **charlie_view** is a view-only wallet sibling of charlie full wallet - no spend key
+
 ## Using
 
 ### Prerequisites
@@ -46,7 +56,7 @@ To disable:
 
 You should disable if attempting the manual offline cold signing using `monero-wallet-cli`
 
-You should also ctl-C charlie & charlie_view wallets
+You should also ctl-C charlie & charlie_view wallets for this
 
 ### Run
 
@@ -149,11 +159,36 @@ charlie_transfer_to
   - address - recipient primary address - account index 0, subaddr_indeces [0]
   - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)
 
+fred_export_outputs
+
+- export fred outputs hex
+- input:
+  - all - defaults to true - otherwise only new outputs since the last call
+
+charlie_export_outputs
+
+- export charlie outputs hex
+- input:
+  - all - defaults to true - otherwise only new outputs since the last call
+
 charlie_view_export_outputs
 
-- export charlie_view outputs - charlie_view knows the outputs but has no keys
+- export charlie_view outputs hex - charlie_view knows the outputs but has no spend key
 - inputs: None
 - only useful in offline, cold signing process using monero-wallet-cli interactive tool
+  must be hex decoded into a file to use in monero-wallet-cli
+
+fred_export_key_images
+
+- export signed key images from fred wallet - an array of key images and ephemeral signatures
+- input:
+  - all - defaults to true - otherwise only new key images since the last call
+
+charlie_export_key_images
+
+- export signed key images from charlie wallet - an array of key images and ephemeral signatures
+- input:
+  - all - defaults to true - otherwise only new key images since the last call
 
 fred_balance
 

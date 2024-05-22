@@ -196,7 +196,7 @@ export_outputs() {
 	monero-rpc-request "${port}" "export_outputs" "${params}" | jq '.'
 }
 
-# import outputs into a cold wallet only for offline signing process
+# import outputs into a cold wallet only for offline signing process - unused
 import_outputs() {
 	local port="${1:?input a valid wallet rpc port for an offline cold wallet}"
 	local outputs_data_hex="${2:?input a valid outputs data hex string}"
@@ -219,11 +219,13 @@ import_key_images() {
 }
 
 # transfer monero to 1 recipient at their account 0, subaddress-indeces [0] 
-# but do not send. Iff it is called for a view only wallet (like watch only)
-# an unsigned_txset (an unsigned tx) will be returned. This can then be signed
-# by the parent full wallet, but offline (i.e. not connected to alpha node).
+# but do not send. If called from a normal wallet with keys it generates a 
+# signed tx. Iff it is called for a view only wallet (like watch only) an
+# unsigned_txset (an unsigned tx) will be also returned. This can then be 
+# signed by the parent full wallet proxy but offline (i.e. not connected to
+# alpha node) using the interactive monero-wallet-cli.
 #
-# Note: This is for online unsigned tx creation and offline signing and can
+# Note: This is for online unsigned tx creation and offline signing also and can
 # also be used with a hardware wallet device like trezor. As a consequence not
 # only must the offline wallet have no connection to the monerod it can never
 # have had any connection to monerod or it is considered a Hot wallet and thus
@@ -325,10 +327,31 @@ cmd_help() {
 	echo "  - address - recipient primary address - account index 0, subaddr_indeces [0]"
 	echo "  - unlock_time - unlock after n blocks and make spendable - defaults to 0 (no lock)"
 	echo ""   
+	echo "fred_export_outputs"
+	echo "- export fred outputs hex"
+	echo "- input:"
+	echo "  - all - defaults to true - otherwise only new outputs since the last call"
+	echo ""
+	echo "charlie_export_outputs"
+	echo "- export charlie outputs hex"
+	echo "- input:"
+	echo "  - all - defaults to true - otherwise only new outputs since the last call"
+	echo ""
 	echo "charlie_view_export_outputs"
-	echo "- export charlie_view outputs - charlie_view knows the outputs but has no keys"
+	echo "- export charlie_view outputs hex - charlie_view knows the outputs but has no spend key"
 	echo "- inputs: None"
 	echo "- only useful in offline, cold signing process using monero-wallet-cli interactive tool"
+	echo "  must be hex decoded into a file to use in monero-wallet-cli"
+	echo ""
+	echo "fred_export_key_images"
+	echo "- export signed key images from fred wallet - an array of key images and ephemeral signatures"
+	echo "- input:"
+	echo "  - all - defaults to true - otherwise only new key images since the last call"
+	echo ""
+	echo "charlie_export_key_images"
+	echo "- export signed key images from charlie wallet - an array of key images and ephemeral signatures"
+	echo "- input:"
+	echo "  - all - defaults to true - otherwise only new key images since the last call"
 	echo ""
 	echo "fred_balance"
 	echo "- get fred wallet balance details"

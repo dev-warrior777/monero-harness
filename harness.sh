@@ -268,18 +268,62 @@ EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_incoming_transfers"
 # -----------------------------------------------------------------------------
 
-# Export outputs from charlie view wallet
-# output:
-# - exported_outputs (array of key images and ephemeral signatures)
+# Export outputs from fred wallet - outputs data hex
+# input:
+# - all - defaults to true - otherwise only new outputs since the last call
+cat > "${HARNESS_CTL_DIR}/fred_export_outputs" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+export_outputs ${FRED_WALLET_RPC_PORT} \$1
+EOF
+chmod +x "${HARNESS_CTL_DIR}/fred_export_outputs"
+# -----------------------------------------------------------------------------
+
+# Export outputs from charlie wallet - outputs data hex
+# input:
+# - all - defaults to true - otherwise only new outputs since the last call
+cat > "${HARNESS_CTL_DIR}/charlie_export_outputs" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+export_outputs ${CHARLIE_WALLET_RPC_PORT} \$1
+EOF
+chmod +x "${HARNESS_CTL_DIR}/charlie_export_outputs"
+# -----------------------------------------------------------------------------
+
+# Export outputs from charlie view wallet for offline signing - array of key images and ephemeral signatures
+# input:
+# - all - defaults to true - otherwise only new outputs since the last call .. not useful for view wallet
 cat > "${HARNESS_CTL_DIR}/charlie_view_export_outputs" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-export_outputs ${CHARLIE_VIEW_WALLET_RPC_PORT}
+export_outputs ${CHARLIE_VIEW_WALLET_RPC_PORT} \$1
 EOF
 chmod +x "${HARNESS_CTL_DIR}/charlie_view_export_outputs"
 # -----------------------------------------------------------------------------
 
-# Build a xigned tx with fred wallet
+# Export signed key images from fred wallet - array of key images and ephemeral signatures
+# input:
+# - all - defaults to true - otherwise only new outputs since the last call
+cat > "${HARNESS_CTL_DIR}/fred_export_key_images" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+export_key_images ${FRED_WALLET_RPC_PORT} \$1
+EOF
+chmod +x "${HARNESS_CTL_DIR}/fred_export_key_images"
+# -----------------------------------------------------------------------------
+
+# Export signed key images from charlie wallet - array of key images and ephemeral signatures
+# input:
+# - all - defaults to true - otherwise only new outputs since the last call
+cat > "${HARNESS_CTL_DIR}/charlie_export_key_images" <<EOF
+#!/usr/bin/env bash
+source monero_functions.inc
+export_key_images ${CHARLIE_WALLET_RPC_PORT} \$1
+EOF
+chmod +x "${HARNESS_CTL_DIR}/charlie_export_key_images"
+# -----------------------------------------------------------------------------
+
+# Build a signed tx with fred wallet
 # inputs
 # - money in atomic units 1e12
 # - recipient monero address
@@ -349,7 +393,7 @@ chmod +x "${HARNESS_CTL_DIR}/quit"
 cat > "${NODES_ROOT}/harness-ctl/help" <<EOF
 #!/usr/bin/env bash
 source monero_functions.inc
-cmd_help | more
+cmd_help | less
 EOF
 chmod +x "${HARNESS_CTL_DIR}/help"
 # -----------------------------------------------------------------------------
@@ -500,16 +544,15 @@ sleep 2
 generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 60
 sleep 2
 generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 60
-# let bill's wallet catch up - time sensitive: it is abnormal to mine 300 blocks
-sleep 5
 
+# let bill's wallet catch up - time sensitive: it is abnormal to mine 300 blocks so fast
 refresh_wallet ${BILL_WALLET_RPC_PORT} | jq '.'
-sleep 1
+sleep 3
+
+# Monero block reward 0.6 XMR on regtest
 
 # bill starts with 180 XMR 144 spendable
 get_balance ${BILL_WALLET_RPC_PORT}
-
-# Monero block reward 0.6 XMR on regtest
 
 # transfer some money from bill-the-miner to fred and charlie
 for money in 10000000000000 18000000000000 5000000000000 7000000000000 1000000000000 15000000000000 3000000000000 25000000000000
@@ -542,7 +585,7 @@ sleep 1
 # mine 10 more blocks to make all fred's and charlie's money spendable (normal tx needs 10 confirmations)
 generate ${BILL_WALLET_PRIMARY_ADDRESS} ${ALPHA_NODE_RPC_PORT} 10
 # let all the wallets catch up
-sleep 7
+sleep 3
 
 # Watch miner
 if [ -z "$NOMINER" ]
