@@ -38,6 +38,7 @@ export FRED_WALLET_RPC_PORT="28084"
 export BILL_WALLET_RPC_PORT="28184"
 export CHARLIE_WALLET_RPC_PORT="28284"
 export CHARLIE_VIEW_WALLET_RPC_PORT="28384"
+export OWN_WALLET_RPC_PORT="28884"
 
 # wallet seeds, passwords & primary addresses
 FRED_WALLET_SEED="vibrate fever timber cuffs hunter terminal dilute losing light because nabbing slower royal brunt gnaw vats fishing tipsy toxic vague oscar fudge mice nasty light"
@@ -63,6 +64,7 @@ FRED_WALLET_DIR="${NODES_ROOT}/wallets/fred"
 BILL_WALLET_DIR="${NODES_ROOT}/wallets/bill"
 CHARLIE_WALLET_DIR="${NODES_ROOT}/wallets/charlie"
 CHARLIE_VIEW_WALLET_DIR="${NODES_ROOT}/wallets/charlie_view"
+OWN_WALLET_DIR="${NODES_ROOT}/wallets/own"
 HARNESS_CTL_DIR="${NODES_ROOT}/harness-ctl"
 ALPHA_DATA_DIR="${NODES_ROOT}/alpha"
 ALPHA_REGTEST_CFG="${ALPHA_DATA_DIR}/alpha.conf"
@@ -74,6 +76,7 @@ mkdir -p "${FRED_WALLET_DIR}"
 mkdir -p "${BILL_WALLET_DIR}"
 mkdir -p "${CHARLIE_WALLET_DIR}"
 mkdir -p "${CHARLIE_VIEW_WALLET_DIR}"
+mkdir -p "${OWN_WALLET_DIR}"
 mkdir -p "${HARNESS_CTL_DIR}"
 mkdir -p "${ALPHA_DATA_DIR}"
 touch    "${ALPHA_REGTEST_CFG}"           # currently empty
@@ -81,7 +84,7 @@ touch    "${ALPHA_REGTEST_CFG}"           # currently empty
 # make available from the harness-ctl dir 
 cp monero_functions.inc ${HARNESS_CTL_DIR} 
 
-# Background watch mining in window ??? by default:
+# Background watch mining in window 7 by default:
 # 'export NOMINER="1"' or uncomment this line to disable
 #NOMINER="1"
 
@@ -370,8 +373,10 @@ cat > "${NODES_ROOT}/harness-ctl/quit" <<EOF
 #!/usr/bin/env bash
 if [ -z "$NOMINER" ]
 then
-   tmux send-keys -t $SESSION:6 C-c
+   tmux send-keys -t $SESSION:7 C-c
 fi
+sleep 0.05
+tmux send-keys -t $SESSION:6 C-c
 sleep 0.05
 tmux send-keys -t $SESSION:5 C-c
 sleep 0.05
@@ -463,7 +468,7 @@ tmux send-keys -t $SESSION:2 "monero-wallet-rpc \
 
 sleep 2
 
-# Start the second wallet client - window 3
+# Start the second wallet server - window 3
 echo "starting bill wallet server"
 
 tmux new-window -t $SESSION:3 -n 'bill' $SHELL
@@ -480,7 +485,7 @@ tmux send-keys -t $SESSION:3 "monero-wallet-rpc \
 sleep 2
 
 # Start the third wallet server - window 4
-echo "starting bill wallet client"
+echo "starting bill wallet server"
 
 tmux new-window -t $SESSION:4 -n 'charlie' $SHELL
 tmux send-keys -t $SESSION:4 "set +o history" C-m
@@ -496,7 +501,7 @@ tmux send-keys -t $SESSION:4 "monero-wallet-rpc \
 sleep 2
 
 # Start the fourth wallet server - window 5
-echo "starting charlie_view wallet client"
+echo "starting charlie_view wallet server"
 
 tmux new-window -t $SESSION:5 -n 'charlie_view' $SHELL
 tmux send-keys -t $SESSION:5 "set +o history" C-m
@@ -508,6 +513,22 @@ tmux send-keys -t $SESSION:5 "monero-wallet-rpc \
    --wallet-dir ${CHARLIE_VIEW_WALLET_DIR} \
    --disable-rpc-login \
    --allow-mismatched-daemon-version; tmux wait-for -S charlieviewxmr" C-m
+
+sleep 2
+
+# Start the fifth wallet server - window 5
+echo "starting Own wallet server"
+
+tmux new-window -t $SESSION:6 -n 'own' $SHELL
+tmux send-keys -t $SESSION:6 "set +o history" C-m
+tmux send-keys -t $SESSION:6 "cd ${CHARLIE_VIEW_WALLET_DIR}" C-m
+
+tmux send-keys -t $SESSION:6 "monero-wallet-rpc \
+   --rpc-bind-ip 127.0.0.1 \
+   --rpc-bind-port ${OWN_WALLET_RPC_PORT} \
+   --wallet-dir ${OWN_WALLET_DIR} \
+   --disable-rpc-login \
+   --allow-mismatched-daemon-version; tmux wait-for -S ownxmr" C-m
 
 sleep 2
 
@@ -590,9 +611,9 @@ sleep 3
 # Watch miner
 if [ -z "$NOMINER" ]
 then
-  tmux new-window -t $SESSION:6 -n "miner" $SHELL
-  tmux send-keys -t $SESSION:6 "cd ${NODES_ROOT}/harness-ctl" C-m
-  tmux send-keys -t $SESSION:6 "watch -n 15 ./mine-to-bill 1" C-m
+  tmux new-window -t $SESSION:7 -n "miner" $SHELL
+  tmux send-keys -t $SESSION:7 "cd ${NODES_ROOT}/harness-ctl" C-m
+  tmux send-keys -t $SESSION:7 "watch -n 15 ./mine-to-bill 1" C-m
 fi
 
 # Re-enable history and attach to the control session.
