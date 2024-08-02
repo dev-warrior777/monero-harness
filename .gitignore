@@ -10,6 +10,11 @@ local_test/
 jq.sh
 _harness-no-tmux.sh
 signing_sequence.txt
+Zero-to-Monero-1-0-0.pdf
+wallet_*
+daemon_*
+get_*
 
 # work
 work-sheets.csv
+prop.lnk.txt
